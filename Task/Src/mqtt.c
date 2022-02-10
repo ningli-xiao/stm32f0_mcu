@@ -132,27 +132,9 @@ int Wait_LTE_RDY(uint8_t time)
     return -1;
 }
 
-/*
- * 函数名：SendDataPacket
- * 功能：发送数据包
- * 输入：无
- * 返回：无
- */
-static int SendDataPacket(uint8_t value)
-{
 
-}
 
-/*
- * 函数名：SendHeartPacket
- * 功能：发送心跳包
- * 输入：无
- * 返回：无
- */
-static int SendHeartPacket(void)
-{
 
-}
 
 /*
  * 函数名：SendLoginPacket
@@ -205,24 +187,7 @@ int Wait_Send_Login_Packet_RDY(uint8_t time)
     return -1;
 }
 
-int Wait_Send_data_Packet_RDY(uint8_t time,uint8_t num)
-{
-    while(--time)
-    {
-        if(SendDataPacket(num) != 0)
-        {
-            DBG_PRINTF(" Send_data_Packet  Fail \r\n");
-        }
-        else
-        {
-            DBG_PRINTF(" Send_data_Packet  Success \r\n");
-            return 0;
-        }
-        HAL_Delay(1000);
-    }
-    DBG_PRINTF(" Send_data_Packet Timeout \r\n");
-    return -1;
-}
+
 
 /*
  * 函数名：mqttTask
@@ -236,6 +201,7 @@ void mqttTask()
     switch (MCU_STATUS.MQTT_STATUS) {
         case MQTT_OFFLINE:
             DBG_PRINTF("MQTT_OFFLINE\r\n");
+
             if(SendATCommand("ati\r\n","OK",WAIT_TIME_IN)==0){
                 ModuleOpen();
             }
@@ -243,28 +209,21 @@ void mqttTask()
             if(SendATCommand("ati\r\n","OK",WAIT_TIME_IN)!=0){
                 DBG_PRINTF("run 0:%s\r\n",msgRecBuff);
             }
-
-            if(SendATCommand("at+sgsw\r\n","OK",WAIT_TIME_IN)!=0){
-                DBG_PRINTF("run 1:%s\r\n",msgRecBuff);
-            }
-
-            if(SendATCommand("at+sgsw\r\n","OK",WAIT_TIME_IN)!=0){
-                DBG_PRINTF("run 2:%s\r\n",msgRecBuff);
-            }
-
             MCU_STATUS.MQTT_STATUS = MQTT_LOGIN;
             break;
 
         case MQTT_LOGIN:
-
             DBG_PRINTF("MQTT_LOGIN\r\n");
+
             break;
 
         case MQTT_ONLINE:
             DBG_PRINTF("MQTT_ONLINE\r\n");
+
             break;
         default:
             DBG_PRINTF("not run well\r\n");
+
             break;
     }
 }
