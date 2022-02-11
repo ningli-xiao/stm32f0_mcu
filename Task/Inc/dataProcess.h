@@ -17,5 +17,5 @@ typedef enum {
 
 }Msg_LIST;
 
-
+extern void dataProcessTask();
 #endif //MCU_DATAPROCESS_H

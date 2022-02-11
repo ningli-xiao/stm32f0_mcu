@@ -132,10 +132,6 @@ int Wait_LTE_RDY(uint8_t time)
     return -1;
 }
 
-
-
-
-
 /*
  * 函数名：SendLoginPacket
  * 功能：发送注册包
@@ -146,6 +142,7 @@ static int SendLoginPacket(void)
 {
 
 }
+
 int Wait_Signal_RDY(uint8_t time)
 {
     while(--time)

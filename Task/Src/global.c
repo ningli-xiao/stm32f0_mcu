@@ -8,12 +8,20 @@
 
 /****************结构体********************/
 MQTT_COMPONENTS MCU_STATUS;//状态机切换
-
+ProcessTask_timer Task_timer;
 /****************数组缓存区和信号量********************/
 uint8_t msgSendBuff[MSG_SEND_LEN] = {0}; //发送缓存区
 uint8_t msgRecBuff[MSG_REC_LEN] = {0}; //接收缓存区
 uint8_t msgRxFlag=0;       //接收完成标记
 uint32_t msgRxSize=0;
+
+uint8_t boardsSendBuff[BOARDS_SEND_LEN] = {0}; //发送缓存区
+uint8_t boardsRecBuff[BOARDS_REC_LEN] = {0}; //接收缓存区
+uint8_t boardsRxFlag=0;       //接收完成标记
+uint8_t boardsDownFlag=0;       //下发标志
+uint32_t boardsRxSize=0;
+
+uint8_t io2DownFlag=0;
 /*
  * 函数名：FindStrFroMem
  * 功能：从接收的数组中查找指定的字符串
@@ -79,4 +87,24 @@ char* Int2String(int num,char *str)//10进制
         str[j] = str[j] - str[i-1-j];
     }
     return str;//返回转换后的值
+}
+
+/*
+ * 函数名：CheckXorAndMod
+ * 功能：‘N’之前的所有字符（不包含‘N’）的ASCII码依次进行异或运算得到的char类型值，再异或上‘N’之前（不包含‘N’）所有字符的长度，再对100取模，得到整型校检码。
+ * 输入：num，str
+ * 返回：生成的字符串地址
+ */
+uint8_t CheckXorAndMod(uint8_t *data, uint32_t len)
+{
+    uint32_t i = 0;
+    uint8_t result = 0;
+    uint8_t *buf = data;
+    for(i=0; i<len; i++)
+    {
+        result ^= *(buf++);
+    }
+    result^=len;
+    result%=100;
+    return result;
 }

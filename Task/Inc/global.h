@@ -8,12 +8,15 @@
 #include "stdio.h"
 #include "main.h"
 #include "string.h"
-#include "malloc.h"
+#include "stdlib.h"
 #include "usart.h"
 //加入以下代码,支持printf函数,而不需要选择use MicroLIB
 
-#define MSG_REC_LEN 256
-#define MSG_SEND_LEN 256
+#define MSG_REC_LEN 128
+#define MSG_SEND_LEN 128
+
+#define BOARDS_REC_LEN 128
+#define BOARDS_SEND_LEN 128
 
 //打印调试封装,正式发布时DEBUG设置为取消打印
 #define  DEBUG   1
@@ -30,7 +33,10 @@ do\
 {\
 }while(0)
 #endif
-
+typedef struct
+{
+    uint8_t boardSendTimer1s;//
+}ProcessTask_timer;
 /* 按键状态机的状态 */
 typedef enum {
     MQTT_OFFLINE = 0x00, //离线
@@ -55,11 +61,20 @@ typedef struct
 /*******************以下为全局变量区域*********************/
 extern uint8_t msgSendBuff[MSG_SEND_LEN]; //发送缓存区
 extern uint8_t msgRecBuff[MSG_REC_LEN]; //接收缓存区
+extern uint8_t boardsSendBuff[MSG_SEND_LEN]; //发送缓存区
+extern uint8_t boardsRecBuff[MSG_REC_LEN]; //接收缓存区
+
 extern MQTT_COMPONENTS MCU_STATUS;
+extern ProcessTask_timer Task_timer;
 
 extern uint8_t msgRxFlag;       //接收完成标记
 extern uint32_t msgRxSize;
+extern uint8_t boardsRxFlag;       //接收完成标记
+extern uint32_t boardsRxSize;
+extern uint8_t boardsDownFlag;
+extern uint8_t io2DownFlag;
 /*******************全局函数接口*********************/
 extern char* Int2String(int num,char *str);//10进制
 extern char* FindStrFroMem(char *buf, uint16_t buflen, char *str);
+extern uint8_t CheckXorAndMod(uint8_t *data, uint32_t len);
 #endif

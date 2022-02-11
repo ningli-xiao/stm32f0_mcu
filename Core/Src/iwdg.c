@@ -42,7 +42,9 @@ void MX_IWDG_Init(void)
 }
 
 /* USER CODE BEGIN 1 */
-
+void feedTask(){
+    HAL_IWDG_Refresh(&hiwdg);
+}
 /* USER CODE END 1 */
 
 /************************ (C) COPYRIGHT STMicroelectronics *****END OF FILE****/

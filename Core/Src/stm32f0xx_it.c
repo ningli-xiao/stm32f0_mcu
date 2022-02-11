@@ -25,7 +25,6 @@
 /* USER CODE BEGIN Includes */
 #include "global.h"
 #include "myOS.h"
-#include "usart.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -61,10 +60,10 @@
 /* External variables --------------------------------------------------------*/
 extern I2C_HandleTypeDef hi2c1;
 extern TIM_HandleTypeDef htim3;
-extern DMA_HandleTypeDef hdma_usart1_rx;
-extern DMA_HandleTypeDef hdma_usart2_rx;
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
+extern DMA_HandleTypeDef hdma_usart1_rx;
+extern DMA_HandleTypeDef hdma_usart2_rx;
 /* USER CODE BEGIN EV */
 
 /* USER CODE END EV */
@@ -147,38 +146,13 @@ void SysTick_Handler(void)
 /******************************************************************************/
 
 /**
-  * @brief This function handles DMA1 channel 2 and 3 interrupts.
-  */
-void DMA1_Channel2_3_IRQHandler(void)
-{
-  /* USER CODE BEGIN DMA1_Channel2_3_IRQn 0 */
-
-  /* USER CODE END DMA1_Channel2_3_IRQn 0 */
-  /* USER CODE BEGIN DMA1_Channel2_3_IRQn 1 */
-
-  /* USER CODE END DMA1_Channel2_3_IRQn 1 */
-}
-
-/**
-  * @brief This function handles DMA1 channel 4 and 5 interrupts.
-  */
-void DMA1_Channel4_5_IRQHandler(void)
-{
-  /* USER CODE BEGIN DMA1_Channel4_5_IRQn 0 */
-
-  /* USER CODE END DMA1_Channel4_5_IRQn 0 */
-  /* USER CODE BEGIN DMA1_Channel4_5_IRQn 1 */
-
-  /* USER CODE END DMA1_Channel4_5_IRQn 1 */
-}
-
-/**
   * @brief This function handles TIM3 global interrupt.
   */
 void TIM3_IRQHandler(void)
 {
   /* USER CODE BEGIN TIM3_IRQn 0 */
-
+    static uint32_t Timer_1s=0;
+    static uint32_t Timer_100ms=0;
   /* USER CODE END TIM3_IRQn 0 */
   /* USER CODE BEGIN TIM3_IRQn 1 */
     if (__HAL_TIM_GET_FLAG(&htim3, TIM_FLAG_UPDATE) != RESET)
@@ -187,8 +161,18 @@ void TIM3_IRQHandler(void)
         {
             OS_IT_RUN();
             DBG_PRINTF("tim2 okok\r\n");
-            __HAL_TIM_CLEAR_IT(&htim3, TIM_IT_UPDATE);
 
+            Timer_1s++;
+            Timer_100ms++;
+            if(Timer_1s>=1000){
+                Timer_1s=0;
+                if(Task_timer.boardSendTimer1s>0)Task_timer.boardSendTimer1s--;
+            }
+            if(Timer_100ms>=100) {
+                Timer_100ms = 0;
+            }
+
+            __HAL_TIM_CLEAR_IT(&htim3, TIM_IT_UPDATE);
         }
     }
   /* USER CODE END TIM3_IRQn 1 */
@@ -213,7 +197,16 @@ void I2C1_IRQHandler(void)
 void USART1_IRQHandler(void)
 {
   /* USER CODE BEGIN USART1_IRQn 0 */
-
+    //板卡的数据
+    int temp;
+    if((__HAL_UART_GET_FLAG(&huart2,UART_FLAG_IDLE)!= RESET))//
+    {
+        __HAL_UART_CLEAR_IDLEFLAG(&huart1);//
+        HAL_UART_DMAStop(&huart1); //
+        temp = __HAL_DMA_GET_COUNTER(&hdma_usart1_rx);//
+        DBG_PRINTF("temp:%d\r\n",temp);
+    }
+    HAL_UART_Receive_DMA( &huart1, boardsRecBuff, BOARDS_REC_LEN);
   /* USER CODE END USART1_IRQn 0 */
   /* USER CODE BEGIN USART1_IRQn 1 */
 
@@ -226,7 +219,16 @@ void USART1_IRQHandler(void)
 void USART2_IRQHandler(void)
 {
   /* USER CODE BEGIN USART2_IRQn 0 */
-
+  //AT指令，网联模组的数据
+    int temp;
+    if((__HAL_UART_GET_FLAG(&huart2,UART_FLAG_IDLE)!= RESET))//
+    {
+        __HAL_UART_CLEAR_IDLEFLAG(&huart2);//
+        HAL_UART_DMAStop(&huart2); //
+        temp = __HAL_DMA_GET_COUNTER(&hdma_usart1_rx);//
+        DBG_PRINTF("temp:%d\r\n",temp);
+    }
+    HAL_UART_Receive_DMA( &huart2, msgRecBuff, MSG_REC_LEN);
   /* USER CODE END USART2_IRQn 0 */
   /* USER CODE BEGIN USART2_IRQn 1 */
 

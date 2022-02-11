@@ -2,8 +2,9 @@
 // Created by 咚咚 on 2022/1/26.
 //
 #include "myOS.h"
-#include "stdlib.h"
 #include "mqtt.h"
+#include "dataProcess.h"
+#include "boardsComm.h"
 #include "iwdg.h"
 #if 1
 /*
@@ -12,8 +13,10 @@
 添加任务和删减任务都在这里完成
 */
 struct TaskStruct TaskST[]={
-        {0,1000,0,mqttTask},
-
+        {0,100,0,mqttTask},
+        {0,100,0,boardsCommTask},
+        {0,100,0,dataProcessTask},
+        {0,3000,0,feedTask},
 };
 
 /*

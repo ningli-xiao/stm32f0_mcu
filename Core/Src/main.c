@@ -43,9 +43,9 @@
 #else
 #define PUTCHAR_PROTOTYPE int fputc(int ch, FILE *f)
 #endif
-PUTCHAR_PROTOTYPE
-{
-    HAL_UART_Transmit(&huart1, (uint8_t *)&ch, 1 , 0xffff);
+
+PUTCHAR_PROTOTYPE {
+    HAL_UART_Transmit(&huart1, (uint8_t *) &ch, 1, 0xffff);
     return ch;
 }
 
@@ -118,7 +118,13 @@ int main(void)
   /* Initialize interrupts */
   MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
-  DBG_PRINTF("hello world\r\n");
+    HAL_TIM_Base_Start_IT(&htim3);
+    __HAL_UART_ENABLE_IT(&huart1, UART_IT_IDLE);
+    __HAL_UART_ENABLE_IT(&huart2, UART_IT_IDLE);
+    HAL_UART_Receive_DMA(&huart1, boardsRecBuff, BOARDS_REC_LEN);
+    HAL_UART_Receive_DMA(&huart1, msgRecBuff, MSG_REC_LEN);
+
+    DBG_PRINTF("hello world\r\n");
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -188,24 +194,18 @@ void SystemClock_Config(void)
   */
 static void MX_NVIC_Init(void)
 {
-  /* DMA1_Channel4_5_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel4_5_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Channel4_5_IRQn);
-  /* TIM3_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(TIM3_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(TIM3_IRQn);
   /* I2C1_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(I2C1_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(I2C1_IRQn);
+  /* TIM3_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(TIM3_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(TIM3_IRQn);
   /* USART1_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(USART1_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(USART1_IRQn);
   /* USART2_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(USART2_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(USART2_IRQn);
-  /* DMA1_Channel2_3_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(DMA1_Channel2_3_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(DMA1_Channel2_3_IRQn);
 }
 
 /* USER CODE BEGIN 4 */
