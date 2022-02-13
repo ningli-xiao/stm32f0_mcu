@@ -5,7 +5,10 @@
 #include "global.h"
 /****************宏定义********************/
 
-
+/****************定义变量********************/
+const uint8_t table_week[12]={0,3,3,6,1,4,6,2,5,0,3,5}; //月修正数据表
+//平年的月份日期表
+const uint8_t mon_table[12]={31,28,31,30,31,30,31,31,30,31,30,31};
 /****************结构体********************/
 MQTT_COMPONENTS MCU_STATUS;//状态机切换
 ProcessTask_timer Task_timer;
@@ -107,4 +110,47 @@ uint8_t CheckXorAndMod(uint8_t *data, uint32_t len)
     result^=len;
     result%=100;
     return result;
+}
+
+//判断是否闰年
+uint8_t Is_Leap_Year(uint16_t year)
+{
+    if(year%4==0) //必须能被4整除
+    {
+        if(year%100==0)
+        {
+            if(year%400==0)return 1;
+            else return 0;
+        }else return 1;
+    }else return 0;
+}
+
+/*
+ * 函数名：time_stamp_Set
+ * 功能：//获取时间戳
+ * 输入：syear，smon.sday,hour,min,sec
+ * 返回：生成的字符串地址
+ */
+
+uint32_t time_stamp_Set(uint16_t syear,uint8_t smon,uint8_t sday,uint8_t hour,uint8_t min,uint8_t sec)
+{
+    uint16_t t;
+    uint32_t seccount=0;
+    if(syear<1970||syear>2099)return 1;
+    for(t=1970;t<syear;t++) //把所有年份的秒钟相加
+    {
+        if(Is_Leap_Year(t))seccount+=31622400;//闰年的秒钟数
+        else seccount+=31536000; //平年的秒钟数
+    }
+    smon-=1;
+    for(t=0;t<smon;t++) //把前面月份的秒钟数相加
+    {
+        seccount+=(uint32_t)mon_table[t]*86400;//月份秒钟数相加
+        if(Is_Leap_Year(syear)&&(t==1))seccount+=86400;//闰年2月份增加一天的秒钟数
+    }
+    seccount+=(uint32_t)(sday-1)*86400;//把前面日期的秒钟数相加
+    seccount+=(uint32_t)hour*3600;//小时秒钟数
+    seccount+=(uint32_t)min*60; //分钟秒钟数
+    seccount+=sec;//最后的秒钟加上去
+    return seccount;
 }

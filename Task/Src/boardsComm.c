@@ -34,14 +34,14 @@ void boardsCommTask() {
 
             //ÏÂÐÐÖÐ¼Ì
             if(boardsDownFlag==1){
-               HAL_UART_Transmit(&huart1, boardsSendBuff, bufLen, 1000) ;
+               HAL_UART_Transmit(&huart2, boardsSendBuff, bufLen, 1000) ;
             }
 
             if(boardSendOkFlag==1){
                 boardSendOkFlag=0;
                 memset(boardsSendBuff,0,BOARDS_SEND_LEN);
                 strcpy(boardsSendBuff, "ALIVE88N80Z");
-                HAL_UART_Transmit(&huart1, boardsSendBuff, bufLen, 1000);
+                HAL_UART_Transmit(&huart2, boardsSendBuff, bufLen, 1000);
             }
 
             DBG_PRINTF("MQTT_ONLINE board\r\n");
@@ -49,14 +49,14 @@ void boardsCommTask() {
 
         default:
             DBG_PRINTF("MQTT_OFF board\r\n");
-            memset(msgSendBuff,0,MSG_SEND_LEN);
-            strcpy(msgSendBuff, "ALIVE99N*Z");
+            memset(boardsSendBuff,0,BOARDS_SEND_LEN);
+            strcpy(boardsSendBuff, "ALIVE99N*Z");
             checkValue = CheckXorAndMod(boardsSendBuff, 7);
             boardsSendBuff[8] = checkValue;
             bufLen = strlen(boardsSendBuff);
             if (Task_timer.boardSendTimer1s == 0) {
                 Task_timer.boardSendTimer1s = 10;
-                if (HAL_UART_Transmit(&huart1, boardsSendBuff, bufLen, 1000) != HAL_OK) {
+                if (HAL_UART_Transmit(&huart2, boardsSendBuff, bufLen, 1000) != HAL_OK) {
                     DBG_PRINTF("mcuSendBuff ERROR");
                 }
             }

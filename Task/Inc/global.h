@@ -77,4 +77,5 @@ extern uint8_t io2DownFlag;
 extern char* Int2String(int num,char *str);//10进制
 extern char* FindStrFroMem(char *buf, uint16_t buflen, char *str);
 extern uint8_t CheckXorAndMod(uint8_t *data, uint32_t len);
+extern uint32_t time_stamp_Set(uint16_t syear,uint8_t smon,uint8_t sday,uint8_t hour,uint8_t min,uint8_t sec);
 #endif

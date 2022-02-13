@@ -14,9 +14,9 @@
 */
 struct TaskStruct TaskST[]={
         {0,100,0,mqttTask},
-        {0,100,0,boardsCommTask},
-        {0,100,0,dataProcessTask},
-        {0,3000,0,feedTask},
+//        {0,1000,0,boardsCommTask},
+//        {0,2000,0,dataProcessTask},
+//        {0,10,0,feedTask},
 };
 
 /*
@@ -46,7 +46,7 @@ void PeachOSRun(){
             TaskST[j].FC();				//执行该任务函数
             TaskST[j].TaskStatus=0;		//取消任务的挂起状态
         }
-        if(++j>=TaskCount)j=0;		//相当于不断循环遍历所有的任务
+        if(++j>=TaskCount)j=0;		//相当于不断循环遍历所有的任务	
     }
 }
 

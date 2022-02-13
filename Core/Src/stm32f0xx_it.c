@@ -131,7 +131,7 @@ void PendSV_Handler(void)
 void SysTick_Handler(void)
 {
   /* USER CODE BEGIN SysTick_IRQn 0 */
-
+    HAL_IncTick();
   /* USER CODE END SysTick_IRQn 0 */
   /* USER CODE BEGIN SysTick_IRQn 1 */
 
@@ -160,8 +160,6 @@ void TIM3_IRQHandler(void)
         if (__HAL_TIM_GET_IT_SOURCE(&htim3, TIM_IT_UPDATE) != RESET)
         {
             OS_IT_RUN();
-            DBG_PRINTF("tim2 okok\r\n");
-
             Timer_1s++;
             Timer_100ms++;
             if(Timer_1s>=1000){
@@ -197,16 +195,18 @@ void I2C1_IRQHandler(void)
 void USART1_IRQHandler(void)
 {
   /* USER CODE BEGIN USART1_IRQn 0 */
-    //板卡的数据
+    //MQTT的数据
     int temp;
-    if((__HAL_UART_GET_FLAG(&huart2,UART_FLAG_IDLE)!= RESET))//
+    if((__HAL_UART_GET_FLAG(&huart1,UART_FLAG_IDLE)!= RESET))//
     {
         __HAL_UART_CLEAR_IDLEFLAG(&huart1);//
         HAL_UART_DMAStop(&huart1); //
+        msgRxFlag=1;
         temp = __HAL_DMA_GET_COUNTER(&hdma_usart1_rx);//
-        DBG_PRINTF("temp:%d\r\n",temp);
+				msgRxSize=MSG_REC_LEN-temp;
+       // DBG_PRINTF("temp AT:%d\r\n",temp);
     }
-    HAL_UART_Receive_DMA( &huart1, boardsRecBuff, BOARDS_REC_LEN);
+    HAL_UART_Receive_DMA( &huart1, msgRecBuff, MSG_REC_LEN);
   /* USER CODE END USART1_IRQn 0 */
   /* USER CODE BEGIN USART1_IRQn 1 */
 
@@ -219,16 +219,19 @@ void USART1_IRQHandler(void)
 void USART2_IRQHandler(void)
 {
   /* USER CODE BEGIN USART2_IRQn 0 */
-  //AT指令，网联模组的数据
     int temp;
     if((__HAL_UART_GET_FLAG(&huart2,UART_FLAG_IDLE)!= RESET))//
     {
         __HAL_UART_CLEAR_IDLEFLAG(&huart2);//
         HAL_UART_DMAStop(&huart2); //
-        temp = __HAL_DMA_GET_COUNTER(&hdma_usart1_rx);//
-        DBG_PRINTF("temp:%d\r\n",temp);
+        boardsRxFlag=1;
+        temp = __HAL_DMA_GET_COUNTER(&hdma_usart2_rx);//
+				boardsRxSize=BOARDS_REC_LEN-temp;
+        //DBG_PRINTF("temp boards:%d\r\n",temp);
+				
     }
-    HAL_UART_Receive_DMA( &huart2, msgRecBuff, MSG_REC_LEN);
+    HAL_UART_Receive_DMA( &huart2, boardsRecBuff, BOARDS_REC_LEN);
+		//DBG_PRINTF("back:%s\r\n",boardsRecBuff);
   /* USER CODE END USART2_IRQn 0 */
   /* USER CODE BEGIN USART2_IRQn 1 */
 
