@@ -6,8 +6,8 @@
 #define _MQTT_H
 #include "stm32f0xx_hal.h"
 
-#define WAIT_TIME_IN  100 //单位10ms
-#define WAIT_TIME_OUT 500
+#define WAIT_TIME_IN  1000 //单位1ms
+#define WAIT_TIME_OUT 5000
 //#define BROKER_SITE "mqtt.testmqtt.com"
 //#define BROKER_PORT 1883
 //#define CLIENT_ID "cc"

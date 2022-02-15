@@ -73,7 +73,7 @@ char *SendATCommand(char *pCommand, char *pEcho, uint32_t outTime) {
             pRet = FindStrFroMem(msgRecBuff, msgRxSize, pEcho);
             if (pRet != 0) { return pRet; }//有正确回复时返回函数
         }
-        HAL_Delay(10);
+        HAL_Delay(1);
     }
     return pRet;
 }
@@ -212,13 +212,33 @@ int Wait_GET_ICCID_RDY(uint8_t time) {
 }
 
 /*
+ * 函数名：MQTT_status
+ * 功能：判断是否处于开机状态
+ * 输入：无
+ * 返回：status
+ */
+int MQTT_status() {
+    if(SendATCommand("ati\r\n", "OK", WAIT_TIME_OUT) != 0){
+        return 1;//代表开机
+    }
+    else{
+        HAL_Delay(2000);
+        if(FindStrFroMem((char *) msgRecBuff, msgRxSize, "OK")==0){
+            return 0;
+        }
+        else{
+            return 1;
+        }
+    }
+}
+/*
  * 函数名：MQTTClient_init
  * 功能：开机初始化等
  * 输入：无
  * 返回：imei topic
  */
 int MQTTClient_init() {
-    if (SendATCommand("ati\r\n", "OK", WAIT_TIME_IN) == 0) {
+    if (MQTT_status()==0) {
         DBG_PRINTF("MQTT_OPEN:%s\r\n", msgRecBuff);
         ModuleOpen();
         Wait_LTE_RDY(5);//等待开机
@@ -319,20 +339,19 @@ void mqttTask() {
         case MQTT_LOGIN:
 
 
-            if (SendATCommand("AT+QMTSUB=0,1,\"topic/example\",2\r\n", "OK", WAIT_TIME_OUT) != 0) {
+            if (SendATCommand("AT+QMTSUB=0,1,\"/guj8fzw4Cqm/ning/user/get\",2\r\n", "OK", WAIT_TIME_OUT) != 0) {
 
             }
             DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
 
-            if (SendATCommand("AT+QMTPUBEX=0,0,0,0,\"topic/pub\",30\r\n", ">", WAIT_TIME_OUT) != 0) {
+            if (SendATCommand("AT+QMTPUBEX=0,0,0,0,\"/sys/guj8fzw4Cqm/ning/thing/model/up_raw\",4\r\n", ">", WAIT_TIME_OUT) != 0) {
+                DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
+            }
+						
+            if (SendATCommand("this", "+QMTPUBEX:0,0,0", WAIT_TIME_OUT) != 0) {
 
             }
-            DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
-
-            if (SendATCommand("this is test data\r\n", "OK", WAIT_TIME_OUT) != 0) {
-
-            }
-            DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
+//            DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
 //            if (SendATCommand("AT+QMTDISC=0\r\n", "OK", WAIT_TIME_OUT) != 0) {
 //                DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
 //                DBG_PRINTF("MQTT_LOGIN\r\n");
