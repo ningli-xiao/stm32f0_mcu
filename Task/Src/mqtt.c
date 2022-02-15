@@ -78,23 +78,9 @@ char *SendATCommand(char *pCommand, char *pEcho, uint32_t outTime) {
     return pRet;
 }
 
-//发送需要发送字节长度命令
-int Send_AT_DATA_LEN(uint8_t len) {
-    uint8_t str_len[5] = {0};
-    char buf[20] = {0};
-    strcpy(buf, "AT+QISEND=0,");
-    strcat(buf, Int2String(len, (char *) str_len));
-    strcat(buf, "\r\n");
-    if (SendATCommand(buf, ">", WAIT_TIME_IN) == 0) {
-        DBG_PRINTF("Send_AT_DATA_LEN Failed:%s\r\n", msgRecBuff);
-        return -1;
-    }
-    return 0;
-}
-
 //获取IMEI号
 int GET_IMEI(void) {
-    uint8_t *pRet = NULL;
+    char *pRet = NULL;
     uint8_t i = 0;
     if (SendATCommand("AT+GSN\r\n", "OK", WAIT_TIME_IN) == 0) {
         DBG_PRINTF("LTE_GET_Imei Fail\r\n");
@@ -103,17 +89,14 @@ int GET_IMEI(void) {
     HAL_Delay(100);
     pRet = FindStrFroMem((char *) msgRecBuff, msgRxSize, "AT+GSN");
     DBG_PRINTF("pRet=%s\r\n", pRet);
-    MODULE_IMEI[0] = pRet[9] - 0x30;
-    for (i = 1; i < 8; i++) {
-        MODULE_IMEI[i] = ((pRet[8 + i * 2] - 0x30) << 4) | (pRet[9 + i * 2] - 0x30);
-    }
-    DBG_PRINTF("LTE_GET_IMEI Success\r\n");
+    memcpy(&MODULE_IMEI[0], pRet + 9, 15);
+    DBG_PRINTF("LTE_GET_IMEI Success:%s\r\n", &MODULE_IMEI[0]);
     return 0;
 }
 
 //获取ICCID号
 int GET_ICCID(void) {
-    uint8_t *pRet = 0;
+    char *pRet = 0;
     uint8_t i = 0;
     if (SendATCommand("AT+CCID\r\n", "OK", WAIT_TIME_IN) == 0) {
         DBG_PRINTF("LTE_GET_ICCID Fail\r\n");
@@ -208,7 +191,7 @@ int Wait_GET_IMEI_RDY(uint8_t time) {
             DBG_PRINTF(" LTE_GET_IMEI  Success \r\n");
             return 0;
         }
-        HAL_Delay(500);
+        HAL_Delay(1000);
     }
     DBG_PRINTF(" LTE_GET_IMEI  Timeout \r\n");
     return -1;
@@ -222,38 +205,79 @@ int Wait_GET_ICCID_RDY(uint8_t time) {
             DBG_PRINTF(" LTE_GET_ICCID  Success \r\n");
             return 0;
         }
-        HAL_Delay(500);
+        HAL_Delay(1000);
     }
     DBG_PRINTF(" LTE_GET_ICCID  Timeout \r\n");
     return -1;
 }
 
+/*
+ * 函数名：MQTTClient_init
+ * 功能：开机初始化等
+ * 输入：无
+ * 返回：imei topic
+ */
+int MQTTClient_init() {
+    if (SendATCommand("ati\r\n", "OK", WAIT_TIME_IN) == 0) {
+        DBG_PRINTF("MQTT_OPEN:%s\r\n", msgRecBuff);
+        ModuleOpen();
+        Wait_LTE_RDY(5);//等待开机
+    } else {
+        DBG_PRINTF("MQTT was OPENED\r\n");
+    }
+    if (SendATCommand("ATE0\r\n", "OK", WAIT_TIME_IN) != 0) {
+    }
+		
+    if (SendATCommand("AT+QMTCFG=\"version\",0,4\r\n", "OK", WAIT_TIME_IN) != 0) {
+    }
+    DBG_PRINTF("AT+QMTCFG:%s\r\n", msgRecBuff);
+    Wait_GET_IMEI_RDY(3);
+    Wait_GET_ICCID_RDY(3);
+    Wait_Signal_RDY(3);
+    strcpy(mqttTopic, PUBLISH_TOPIC);
+    strcat(mqttTopic, MODULE_IMEI);
+    DBG_PRINTF("mqttTopic:%s\r\n", mqttTopic);
+}
 
 /*
- * 函数名：SendLoginPacket
+ * 函数名：MQTTClient_connect
  * 功能：发送注册包
  * 输入：无
  * 返回：无
  */
-static int SendLoginPacket(void) {
+int MQTTClient_connect() {
 
 }
 
-int Wait_Send_Login_Packet_RDY(uint8_t time) {
-    while (--time) {
-        if (SendLoginPacket() != 0) {
-            DBG_PRINTF(" Send_Login_Packet  Faile \r\n");
-        } else {
-            DBG_PRINTF(" Send_Login_Packet  Success \r\n");
-            return 0;
-        }
-        HAL_Delay(1000);
-    }
+/*
+ * 函数名：MQTTClient_connect
+ * 功能：发送注册包
+ * 输入：无
+ * 返回：无
+ */
+int MQTTClient_disconnect(int client, char *conn_opts) {
 
-    printf(" Send_Login_Packet  Timeout \r\n");
-    return -1;
 }
 
+/*
+ * 函数名：MQTTClient_pubMessage
+ * 功能：发送注册包
+ * 输入：无
+ * 返回：无
+ */
+int MQTTClient_pubMessage() {
+
+}
+
+/*
+ * 函数名：MQTTClient_subMessage
+ * 功能：发送注册包
+ * 输入：无
+ * 返回：无
+ */
+int MQTTClient_subMessage() {
+
+}
 
 /*
  * 函数名：mqttTask
@@ -267,76 +291,63 @@ void mqttTask() {
         case MQTT_OFFLINE:
             DBG_PRINTF("MQTT_OFFLINE\r\n");
 
-            if (SendATCommand("ati\r\n", "OK", WAIT_TIME_IN) == 0) {
-                DBG_PRINTF("MQTT_OPEN\r\n");
-                ModuleOpen();
-                Wait_LTE_RDY(3);//等待开机
-            }
-            Wait_GET_IMEI_RDY(3);
-            Wait_GET_ICCID_RDY(3);
-            Wait_Signal_RDY(3);
+            MQTTClient_init();
+
 #if 1
-            if (SendATCommand("AT+QMTCFG=\"recv/mode\",0,0,1\r\n", "OK", WAIT_TIME_OUT) != 0) {
-                DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
-            }
 
-            if (SendATCommand(
-                    "AT+QMTCFG=\"aliauth\",0,\"oyjtmPl5a5j\",\"MQTT_TEST\",\"wN9Y6pZSIIy7Exa5qVzcmigEGO4kAazZ\"\r\n",
-                    "OK", WAIT_TIME_OUT) != 0) {
-                DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
+            if (SendATCommand("AT+CGPADDR=1\r\n", "OK", WAIT_TIME_OUT) != 0) {
             }
+            DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
 
-            if (SendATCommand("AT+QMTOPEN=0,\"iot-as-mqtt.cn-shanghai.aliyuncs.com\",1883\r\n", "OK", WAIT_TIME_OUT) !=
-                0) {
-                DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
+            if (SendATCommand("AT+QMTCFG=\"aliauth\",0,\"guj8fzw4Cqm\",\"ning\",\"08b9d73fa2df4df8ea9024a8d1826a0e\"\r\n", "OK", WAIT_TIME_OUT) != 0) {
+            }
+            DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
+
+            if (SendATCommand("AT+CGPADDR=1\r\n", "OK", WAIT_TIME_OUT) != 0) {
+            }
+            DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
+            if (SendATCommand("AT+QMTOPEN=0,\"iot-06z00ajwgt8j2qm.mqtt.iothub.aliyuncs.com\",1883\r\n", "+QMTOPEN:0,0", WAIT_TIME_OUT) != 0) {
+            }
+            if (SendATCommand("AT+QMTCONN=0,\"ning\"\r\n", "+QMTCONN:0,0,0", WAIT_TIME_OUT) != 0){
 
             }
+            DBG_PRINTF("AT+QMTCONN:%s\r\n", msgRecBuff);
 #endif
-                MCU_STATUS.MQTT_STATUS = MQTT_ONLINE;
-
+            MCU_STATUS.MQTT_STATUS = MQTT_LOGIN;
             break;
 
         case MQTT_LOGIN:
-            if (SendATCommand("AT+QMTCONN=0,\"clientExample\"\r\n", "OK", WAIT_TIME_OUT) != 0) {
-                DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
-            }
 
-            if (SendATCommand("AT+QMTSUB=?\r\n", "OK", WAIT_TIME_OUT) != 0) {
-                DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
-            }
 
             if (SendATCommand("AT+QMTSUB=0,1,\"topic/example\",2\r\n", "OK", WAIT_TIME_OUT) != 0) {
-                DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
-            }
 
-            if (SendATCommand("AT+QMTUNS=0,2,\"topic/example\"\r\n", "OK", WAIT_TIME_OUT) != 0) {
-                DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
             }
-            if (SendATCommand("AT+QMTPUBEX=?\r\n", "OK", WAIT_TIME_OUT) != 0) {
-                DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
-            }
+            DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
 
             if (SendATCommand("AT+QMTPUBEX=0,0,0,0,\"topic/pub\",30\r\n", ">", WAIT_TIME_OUT) != 0) {
-                DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
-            }
-            if (SendATCommand("this is test data\r\n", "OK", WAIT_TIME_OUT) != 0) {
-                DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
-            }
-            if (SendATCommand("AT+QMTDISC=0\r\n", "OK", WAIT_TIME_OUT) != 0) {
-                DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
-                DBG_PRINTF("MQTT_LOGIN\r\n");
-                MCU_STATUS.MQTT_STATUS = MQTT_ONLINE;
-            }
 
+            }
+            DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
+
+            if (SendATCommand("this is test data\r\n", "OK", WAIT_TIME_OUT) != 0) {
+
+            }
+            DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
+//            if (SendATCommand("AT+QMTDISC=0\r\n", "OK", WAIT_TIME_OUT) != 0) {
+//                DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
+//                DBG_PRINTF("MQTT_LOGIN\r\n");
+//                
+//            }
+            MCU_STATUS.MQTT_STATUS = MQTT_ONLINE;
 
             break;
 
         case MQTT_ONLINE:
-           
+
 
             break;
         default:
-            
+
 
             break;
     }

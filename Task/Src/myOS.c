@@ -13,7 +13,7 @@
 添加任务和删减任务都在这里完成
 */
 struct TaskStruct TaskST[]={
-        {0,100,0,mqttTask},
+        {0,50,0,mqttTask},
 //        {0,1000,0,boardsCommTask},
 //        {0,2000,0,dataProcessTask},
 //        {0,10,0,feedTask},
