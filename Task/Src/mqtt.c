@@ -7,7 +7,9 @@
 
 uint8_t MODULE_IMEI[20] = {"0"};
 uint8_t MODULE_ICCID[25] = {"0"};
-uint8_t mqttTopic[20] = {"0"};//根据IMEI和topic构建新主题
+//uint8_t mqttTopic[20] = {"0"};//根据IMEI和topic构建新主题
+
+MQTTString mqttTopic = MQTTString_initializer;
 uint32_t net_time = 0;
 
 /*
@@ -254,8 +256,8 @@ int MQTTClient_init() {
     Wait_GET_IMEI_RDY(3);
     Wait_GET_ICCID_RDY(3);
     Wait_Signal_RDY(3);
-    strcpy(mqttTopic, PUBLISH_TOPIC);
-    strcat(mqttTopic, MODULE_IMEI);
+    strcpy(mqttTopic.cstring, PUBLISH_TOPIC);
+    strcat(mqttTopic.cstring, MODULE_IMEI);
     DBG_PRINTF("mqttTopic:%s\r\n", mqttTopic);
 }
 
@@ -266,7 +268,27 @@ int MQTTClient_init() {
  * 返回：无
  */
 int MQTTClient_connect() {
-
+    char buf[255] = {0};
+    char *pRet=0;
+    if(SendATCommand("AT+QICSGP=1,1,\"CMNET\",\"\",\"\",1\r\n","OK",WAIT_TIME_IN)==0)
+    {
+        printf("AT+QICSGP error\r\n");
+    }
+    HAL_Delay(200);
+#if 0
+    strcpy(buf, "AT+QIOPEN=1,0,\"TCP\",\"\0");
+    strcat(buf, IP);
+    strcat(buf, "\",");
+    strcat(buf, Port);
+    strcat(buf, ",0,0\r\n");//模式
+    pRet = SendATCommand(buf,"QIOPEN: 0",WAIT_TIME_OUT);
+#endif
+    if(pRet == 0)//失败返回-1
+    {
+        printf("AT+QIOPEN1 error:%s\r\n",Lte_RX_BUF);
+        return -1;
+    }
+    return 0;//通过返回0
 }
 
 /*

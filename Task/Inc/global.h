@@ -37,6 +37,7 @@ typedef struct
 {
     uint8_t boardSendTimer1s;//
 }ProcessTask_timer;
+
 /* 按键状态机的状态 */
 typedef enum {
     MQTT_OFFLINE = 0x00, //离线
@@ -56,7 +57,6 @@ typedef struct
     MQTT_STATUS_LIST MQTT_STATUS;
     MQTT_MODE_LIST MQTT_MODE;
 }MQTT_COMPONENTS;
-
 
 /*******************以下为全局变量区域*********************/
 extern uint8_t msgSendBuff[MSG_SEND_LEN]; //发送缓存区
