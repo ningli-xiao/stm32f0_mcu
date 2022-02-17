@@ -3,13 +3,12 @@
 //
 #include "mqtt.h"
 #include "global.h"
+#include "boardsComm.h"
 
-
-uint8_t MODULE_IMEI[20] = {"0"};
-uint8_t MODULE_ICCID[25] = {"0"};
-uint8_t mqttTopic[20] = {"0"};//根据IMEI和topic构建新主题
-MQTTPacket_connectData mqttConnectData =MQTTPacket_connectData_initializer;
-uint32_t net_time = 0;
+uint8_t MODULE_IMEI[16] = {"0"};
+uint8_t MODULE_ICCID[21] = {"0"};
+uint8_t mqttTopic[30] = {"0"};//根据IMEI和topic构建新主题
+MQTTPacket_connectData mqttConnectData = MQTTPacket_connectData_initializer;
 
 /*
  * 函数名：SoftReset
@@ -50,7 +49,7 @@ void UART_SendData(char *pdatabuf) {
     uint16_t sizeTemp = 0;
     sizeTemp = strlen(pdatabuf);
     if (HAL_UART_Transmit(&huart1, pdatabuf, sizeTemp, 1000) != HAL_OK) {
-        DBG_PRINTF("UART_SendData ERROR");
+        DBG_PRINTF("UART_SendData ERROR\r\n");
     }
 }
 
@@ -129,31 +128,32 @@ int GET_Signal_Quality(void) {
 }
 
 int LTE_Get_Real_Time(void) {
-    uint16_t year_temp = 0;
-    uint8_t momth_temp = 0;
-    uint8_t day_temp = 0;
 
+    uint32_t timestamp = 0;
+
+    uint16_t year_temp = 0;
+    uint8_t month_temp = 0;
+    uint8_t day_temp = 0;
     uint8_t hour_temp = 0;
     uint8_t minute_temp = 0;
     uint8_t sec_temp = 0;
 
     char *pRet = NULL;
     uint32_t len = 0;
+
     pRet = SendATCommand("AT+CCLK?\r\n", "+CCLK:", WAIT_TIME_OUT);
     if (pRet != 0) {
         pRet += 1;
         year_temp = (pRet[7] - 0x30) * 10 + (pRet[8] - 0x30) + 2000;
-        momth_temp = (pRet[10] - 0x30) * 10 + (pRet[11] - 0x30);
+        month_temp = (pRet[10] - 0x30) * 10 + (pRet[11] - 0x30);
         day_temp = (pRet[13] - 0x30) * 10 + (pRet[14] - 0x30);
 
         hour_temp = (pRet[16] - 0x30) * 10 + (pRet[17] - 0x30);
         minute_temp = (pRet[19] - 0x30) * 10 + (pRet[20] - 0x30);
         sec_temp = (pRet[22] - 0x30) * 10 + (pRet[23] - 0x30);
-        net_time = time_stamp_Set(year_temp, momth_temp, day_temp, hour_temp, minute_temp, sec_temp);
-        DBG_PRINTF("TIME:%lu\r\n", net_time);
-        return 0;
+        timestamp = time_stamp_Set(year_temp, month_temp, day_temp, hour_temp, minute_temp, sec_temp);
+        return timestamp;
     }
-    HAL_Delay(100);
     return -1;
 }
 
@@ -214,13 +214,12 @@ int Wait_GET_ICCID_RDY(uint8_t time) {
  * 返回：无
  */
 int MQTTParam_init() {
-
-    mqttConnectData.MQTTVersion=4;
-    mqttConnectData.clientID.cstring=CLIENT_ID;
-    mqttConnectData.username.cstring=CLIENT_USER;
-    mqttConnectData.password.cstring=CLIENT_PASS;
-    mqttConnectData.address.cstring=BROKER_SITE;
-    mqttConnectData.port=BROKER_PORT;
+    mqttConnectData.MQTTVersion = 4;
+    mqttConnectData.clientID.cstring = CLIENT_ID;
+    mqttConnectData.username.cstring = CLIENT_USER;
+    mqttConnectData.password.cstring = CLIENT_PASS;
+    mqttConnectData.address.cstring = BROKER_SITE;
+    mqttConnectData.port = BROKER_PORT;
 }
 
 
@@ -231,8 +230,8 @@ int MQTTParam_init() {
  * 返回：imei topic
  */
 int MQTTClient_init() {
-    if (SendATCommand("ATE0\r\n", "OK", WAIT_TIME_OUT) ==0) {
-        DBG_PRINTF("MQTT_OPEN:%s\r\n", msgRecBuff);
+    if (SendATCommand("ATE0\r\n", "OK", WAIT_TIME_OUT) == 0) {
+        DBG_PRINTF("MQTT_OPENING\r\n");
         ModuleOpen();
         Wait_LTE_RDY(5);//等待开机
     } else {
@@ -248,7 +247,7 @@ int MQTTClient_init() {
     Wait_Signal_RDY(3);
 
     strcpy(mqttTopic, PUBLISH_TOPIC);
-    strcat(mqttTopic, MODULE_IMEI);
+    strcat(mqttTopic, &MODULE_IMEI[8]);//拼接后8位数据
     DBG_PRINTF("mqttTopic:%s\r\n", mqttTopic);
 }
 
@@ -258,13 +257,12 @@ int MQTTClient_init() {
  * 输入：无
  * 返回：无
  */
-int MQTTClient_connect(MQTTPacket_connectData mqtt)
-{
+int MQTTClient_connect(MQTTPacket_connectData mqtt) {
     char buf[128] = {0};
-    char *pRet=0;
-    char portTemp[5]={0};
+    char *pRet = 0;
+    char portTemp[5] = {0};
 
-    sprintf(portTemp,"%d",mqtt.port);
+    sprintf(portTemp, "%d", mqtt.port);
     strcpy(buf, "AT+QMTOPEN=0,\"");
     strcat(buf, mqtt.address.cstring);
     strcat(buf, "\",");
@@ -272,7 +270,7 @@ int MQTTClient_connect(MQTTPacket_connectData mqtt)
     strcat(buf, "\r\n");//模式
     DBG_PRINTF("%s\r\n", buf);
 
-    if (SendATCommand(buf, "+QMTOPEN: 0,0", WAIT_TIME_OUT) == 0){
+    if (SendATCommand(buf, "+QMTOPEN: 0,0", WAIT_TIME_OUT) == 0) {
         DBG_PRINTF("error:%s\r\n", msgRecBuff);
         return -1;
     }
@@ -305,14 +303,14 @@ int MQTTClient_connect(MQTTPacket_connectData mqtt)
  * 返回：无
  */
 int MQTTClient_disconnect() {
-     if (SendATCommand("AT+QMTDISC=0\r\n", "OK", WAIT_TIME_OUT) == 0) {
-         return -1;
-     }
+    if (SendATCommand("AT+QMTDISC=0\r\n", "OK", WAIT_TIME_OUT) == 0) {
+        return -1;
+    }
     HAL_Delay(200);
     if (SendATCommand("AT+QMTCLOSE=0\r\n", "OK", WAIT_TIME_OUT) == 0) {
         return -1;
     }
-     return 0;
+    return 0;
 }
 
 /*
@@ -321,18 +319,73 @@ int MQTTClient_disconnect() {
  * 输入：无
  * 返回：无
  */
-int MQTTClient_pubMessage() {
+int MQTTClient_pubMessage(char *pubTopic, char *payload) {
+    char buf[128] = {0};
+    char lenTemp[4]={0};
+    sprintf(lenTemp,"%d",strlen(payload));
 
+
+    strcpy(buf, "AT+QMTPUBEX=0,0,0,0,\"");
+    strcat(buf, pubTopic);
+    strcat(buf, "\",");
+    strcat(buf, lenTemp);
+    strcat(buf, "\r\n");//模式
+
+    if (SendATCommand(buf, ">", WAIT_TIME_OUT) == 0) {
+        DBG_PRINTF("pub error:%s\r\n", msgRecBuff);
+        return -1;
+    }
+
+    if (SendATCommand(payload, "+QMTPUBEX: 0,0,0", WAIT_TIME_OUT) == 0) {
+        DBG_PRINTF("payload error:%s\r\n", msgRecBuff);
+        return -1;
+    }
+    return 0;
 }
 
 /*
  * 函数名：MQTTClient_subMessage
- * 功能：发送注册包
+ * 功能：订阅消息
  * 输入：无
  * 返回：无
  */
-int MQTTClient_subMessage() {
+int MQTTClient_subMessage(char *subTopic) {
+    char buf[128] = {0};
 
+    strcpy(buf, "AT+QMTSUB=0,1,\"");
+    strcat(buf, subTopic);
+    strcat(buf, "\",");
+    strcat(buf, "2");
+    strcat(buf, "\r\n");//模式
+    DBG_PRINTF("%s\r\n", buf);
+
+    if (SendATCommand(buf, "OK", WAIT_TIME_OUT) == 0) {
+        DBG_PRINTF("sub error:%s\r\n", msgRecBuff);
+        return -1;
+    }
+    return 0;
+}
+
+/*
+ * 函数名：MQTTClient_tunsMessage
+ * 功能：退订消息
+ * 输入：无
+ * 返回：无
+ */
+int MQTTClient_tunsMessage(char *subTopic) {
+    char buf[128] = {0};
+
+    strcpy(buf, "AT+QMTUNS=0,2,\"");
+    strcat(buf, subTopic);
+    strcat(buf, "\"");
+    strcat(buf, "\r\n");//模式
+    DBG_PRINTF("%s\r\n", buf);
+
+    if (SendATCommand(buf, "OK", WAIT_TIME_OUT) == 0) {
+        DBG_PRINTF("tuns error:%s\r\n", msgRecBuff);
+        return -1;
+    }
+    return 0;
 }
 
 /*
@@ -352,32 +405,39 @@ void mqttTask() {
             break;
 
         case MQTT_LOGIN:
-            MQTTClient_disconnect();
+            if (MQTTClient_disconnect() == 0)//保护作用，防止重启error
+            {
+                DBG_PRINTF("disconnect ok\r\n");
+            }
             MQTTClient_connect(mqttConnectData);
-//            if (SendATCommand("AT+QMTSUB=0,1,\"/guj8fzw4Cqm/ning/user/get\",2\r\n", "OK", WAIT_TIME_OUT) != 0) {
-//
-//            }
-//            DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
-//
-//            if (SendATCommand("AT+QMTPUBEX=0,0,0,0,\"/sys/guj8fzw4Cqm/ning/thing/model/up_raw\",4\r\n", ">", WAIT_TIME_OUT) != 0) {
-//                DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
-//            }
-//
-//            if (SendATCommand("this", "+QMTPUBEX:0,0,0", WAIT_TIME_OUT) != 0) {
-//
-//            }
-//            DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
-//            if (SendATCommand("AT+QMTDISC=0\r\n", "OK", WAIT_TIME_OUT) != 0) {
-//                DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
-//                DBG_PRINTF("MQTT_LOGIN\r\n");
-//                
-//            }
+            net_time = LTE_Get_Real_Time();
+            DBG_PRINTF("TIME:%lu\r\n", net_time);
             MCU_STATUS.MQTT_STATUS = MQTT_ONLINE;
-
             break;
 
         case MQTT_ONLINE:
-
+            if (boardSendFlag==1){
+                boardSendFlag=0;
+                if(MQTTClient_pubMessage(mqttTopic,msgSendBuff)==0)
+                {
+                    boardSendOkFlag=1;
+                }
+            }
+            if(msgRxFlag==1)
+            {
+                msgRxFlag=0;
+                //假设校验通过
+                memset(boardsSendBuff,0,BOARDS_SEND_LEN);
+                memcpy(boardsSendBuff,msgRecBuff,msgRxSize);
+                boardsDownFlag=1;
+            }
+            if (Task_timer.publishTimer1s == 0) {
+                Task_timer.publishTimer1s = PUBLISH_INTERVAL;
+                if(MQTTClient_pubMessage(mqttTopic,"LOC:")==0)
+                {
+                    boardSendOkFlag=1;
+                }
+            }
 
             break;
         default:

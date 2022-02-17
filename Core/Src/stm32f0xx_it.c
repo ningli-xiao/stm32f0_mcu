@@ -203,7 +203,7 @@ void USART1_IRQHandler(void)
         HAL_UART_DMAStop(&huart1); //
         msgRxFlag=1;
         temp = __HAL_DMA_GET_COUNTER(&hdma_usart1_rx);//
-				msgRxSize=MSG_REC_LEN-temp;
+		msgRxSize=MSG_REC_LEN-temp;
        // DBG_PRINTF("temp AT:%d\r\n",temp);
     }
     HAL_UART_Receive_DMA( &huart1, msgRecBuff, MSG_REC_LEN);
@@ -226,7 +226,7 @@ void USART2_IRQHandler(void)
         HAL_UART_DMAStop(&huart2); //
         boardsRxFlag=1;
         temp = __HAL_DMA_GET_COUNTER(&hdma_usart2_rx);//
-				boardsRxSize=BOARDS_REC_LEN-temp;
+		boardsRxSize=BOARDS_REC_LEN-temp;
         //DBG_PRINTF("temp boards:%d\r\n",temp);
 				
     }

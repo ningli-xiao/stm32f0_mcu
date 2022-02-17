@@ -25,9 +25,13 @@ uint8_t boardsDownFlag=0;       //下发标志
 uint32_t boardsRxSize=0;
 
 uint8_t io2DownFlag=0;
+
+uint32_t net_time = 0;
+
 /*
  * 函数名：FindStrFroMem
  * 功能：从接收的数组中查找指定的字符串
+ *      如果都是字符串传输可替换为strstr()函数，否则传输数据有0存在会打断
  * 输入：buf，buflen，str
  * 返回：字符串地址，null代表未找到
  */

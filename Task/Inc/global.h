@@ -36,6 +36,8 @@ do\
 typedef struct
 {
     uint8_t boardSendTimer1s;//
+    uint16_t publishTimer1s;//
+    uint8_t HeartTimer1s;//
 }ProcessTask_timer;
 
 /* 按键状态机的状态 */
@@ -73,6 +75,8 @@ extern uint8_t boardsRxFlag;       //接收完成标记
 extern uint32_t boardsRxSize;
 extern uint8_t boardsDownFlag;
 extern uint8_t io2DownFlag;
+
+extern uint32_t net_time;
 /*******************全局函数接口*********************/
 extern char* Int2String(int num,char *str);//10进制
 extern char* FindStrFroMem(char *buf, uint16_t buflen, char *str);
