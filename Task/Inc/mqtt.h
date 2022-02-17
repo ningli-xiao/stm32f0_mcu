@@ -10,25 +10,25 @@
 
 #define WAIT_TIME_IN  1000 //µ¥Î»1ms
 #define WAIT_TIME_OUT 5000
-//#define BROKER_SITE "mqtt.testmqtt.com"
-//#define BROKER_PORT 1883
-//#define CLIENT_ID "cc"
-//#define CLIENT_USER "123"
+#define BROKER_SITE "118.24.42.203"
+#define BROKER_PORT 1883
+#define CLIENT_ID "cc"
+#define CLIENT_USER "123"
+#define CLIENT_PASS "1"
+#define SUBSCRIBE_TOPIC "testsub"
+#define PUBLISH_TOPIC "testpub"
+#define PUBLISH_INTERVAL 300
+#define PUBLISH_PAYLOEAD "hello I'm from gprs module"
+
+//#define BROKER_SITE "183.230.40.39"
+//#define BROKER_PORT 6002
+//#define CLIENT_ID "893582456"
+//#define CLIENT_USER "489121"
 //#define CLIENT_PASS "1"
 //#define SUBSCRIBE_TOPIC "testsub"
 //#define PUBLISH_TOPIC "testpub"
 //#define PUBLISH_INTERVAL 300000
 //#define PUBLISH_PAYLOEAD "hello I'm from gprs module"
-
-#define BROKER_SITE "183.230.40.39"
-#define BROKER_PORT 6002
-#define CLIENT_ID "893582456"
-#define CLIENT_USER "489121"
-#define CLIENT_PASS "1"
-#define SUBSCRIBE_TOPIC "testsub"
-#define PUBLISH_TOPIC "testpub"
-#define PUBLISH_INTERVAL 300000
-#define PUBLISH_PAYLOEAD "hello I'm from gprs module"
 
 
 
@@ -82,6 +82,8 @@ typedef struct
 //    MQTTPacket_willOptions will;
     MQTTString username;
     MQTTString password;
+    MQTTString address;
+    uint16_t port;
 } MQTTPacket_connectData;
 #define MQTTPacket_connectData_initializer { 4, {NULL, {0, NULL}}, 60, 1, {NULL, {0, NULL}}, {NULL, {0, NULL}}}
 extern void mqttTask();

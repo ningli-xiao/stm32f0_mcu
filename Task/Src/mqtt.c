@@ -7,9 +7,8 @@
 
 uint8_t MODULE_IMEI[20] = {"0"};
 uint8_t MODULE_ICCID[25] = {"0"};
-//uint8_t mqttTopic[20] = {"0"};//根据IMEI和topic构建新主题
-
-MQTTString mqttTopic = MQTTString_initializer;
+uint8_t mqttTopic[20] = {"0"};//根据IMEI和topic构建新主题
+MQTTPacket_connectData mqttConnectData =MQTTPacket_connectData_initializer;
 uint32_t net_time = 0;
 
 /*
@@ -91,6 +90,7 @@ int GET_IMEI(void) {
     HAL_Delay(100);
     pRet = FindStrFroMem((char *) msgRecBuff, msgRxSize, "AT+GSN");
     DBG_PRINTF("pRet=%s\r\n", pRet);
+    DBG_PRINTF("msgRecBuff=%s\r\n", msgRecBuff);
     memcpy(&MODULE_IMEI[0], pRet + 9, 15);
     DBG_PRINTF("LTE_GET_IMEI Success:%s\r\n", &MODULE_IMEI[0]);
     return 0;
@@ -187,10 +187,7 @@ int Wait_Signal_RDY(uint8_t time) {
 
 int Wait_GET_IMEI_RDY(uint8_t time) {
     while (--time) {
-        if (GET_IMEI() != 0) {
-            DBG_PRINTF(" LTE_GET_IMEI  Faile \r\n");
-        } else {
-            DBG_PRINTF(" LTE_GET_IMEI  Success \r\n");
+        if (GET_IMEI() == 0) {
             return 0;
         }
         HAL_Delay(1000);
@@ -201,10 +198,7 @@ int Wait_GET_IMEI_RDY(uint8_t time) {
 
 int Wait_GET_ICCID_RDY(uint8_t time) {
     while (--time) {
-        if (GET_ICCID() != 0) {
-            DBG_PRINTF(" LTE_GET_ICCID  Faile \r\n");
-        } else {
-            DBG_PRINTF(" LTE_GET_ICCID  Success \r\n");
+        if (GET_ICCID() == 0) {
             return 0;
         }
         HAL_Delay(1000);
@@ -214,25 +208,22 @@ int Wait_GET_ICCID_RDY(uint8_t time) {
 }
 
 /*
- * 函数名：MQTT_status
- * 功能：判断是否处于开机状态
+ * 函数名：MQTTParam_init
+ * 功能：参数初始化
  * 输入：无
- * 返回：status
+ * 返回：无
  */
-int MQTT_status() {
-    if(SendATCommand("ati\r\n", "OK", WAIT_TIME_OUT) != 0){
-        return 1;//代表开机
-    }
-    else{
-        HAL_Delay(2000);
-        if(FindStrFroMem((char *) msgRecBuff, msgRxSize, "OK")==0){
-            return 0;
-        }
-        else{
-            return 1;
-        }
-    }
+int MQTTParam_init() {
+
+    mqttConnectData.MQTTVersion=4;
+    mqttConnectData.clientID.cstring=CLIENT_ID;
+    mqttConnectData.username.cstring=CLIENT_USER;
+    mqttConnectData.password.cstring=CLIENT_PASS;
+    mqttConnectData.address.cstring=BROKER_SITE;
+    mqttConnectData.port=BROKER_PORT;
 }
+
+
 /*
  * 函数名：MQTTClient_init
  * 功能：开机初始化等
@@ -240,24 +231,24 @@ int MQTT_status() {
  * 返回：imei topic
  */
 int MQTTClient_init() {
-    if (MQTT_status()==0) {
+    if (SendATCommand("ATE0\r\n", "OK", WAIT_TIME_OUT) ==0) {
         DBG_PRINTF("MQTT_OPEN:%s\r\n", msgRecBuff);
         ModuleOpen();
         Wait_LTE_RDY(5);//等待开机
     } else {
         DBG_PRINTF("MQTT was OPENED\r\n");
     }
-    if (SendATCommand("ATE0\r\n", "OK", WAIT_TIME_IN) != 0) {
-    }
-		
+
     if (SendATCommand("AT+QMTCFG=\"version\",0,4\r\n", "OK", WAIT_TIME_IN) != 0) {
     }
     DBG_PRINTF("AT+QMTCFG:%s\r\n", msgRecBuff);
+
     Wait_GET_IMEI_RDY(3);
     Wait_GET_ICCID_RDY(3);
     Wait_Signal_RDY(3);
-    strcpy(mqttTopic.cstring, PUBLISH_TOPIC);
-    strcat(mqttTopic.cstring, MODULE_IMEI);
+
+    strcpy(mqttTopic, PUBLISH_TOPIC);
+    strcat(mqttTopic, MODULE_IMEI);
     DBG_PRINTF("mqttTopic:%s\r\n", mqttTopic);
 }
 
@@ -267,27 +258,43 @@ int MQTTClient_init() {
  * 输入：无
  * 返回：无
  */
-int MQTTClient_connect() {
-    char buf[255] = {0};
+int MQTTClient_connect(MQTTPacket_connectData mqtt)
+{
+    char buf[128] = {0};
     char *pRet=0;
-    if(SendATCommand("AT+QICSGP=1,1,\"CMNET\",\"\",\"\",1\r\n","OK",WAIT_TIME_IN)==0)
-    {
-        printf("AT+QICSGP error\r\n");
-    }
-    HAL_Delay(200);
-#if 0
-    strcpy(buf, "AT+QIOPEN=1,0,\"TCP\",\"\0");
-    strcat(buf, IP);
+    char portTemp[5]={0};
+
+    sprintf(portTemp,"%d",mqtt.port);
+    strcpy(buf, "AT+QMTOPEN=0,\"");
+    strcat(buf, mqtt.address.cstring);
     strcat(buf, "\",");
-    strcat(buf, Port);
-    strcat(buf, ",0,0\r\n");//模式
-    pRet = SendATCommand(buf,"QIOPEN: 0",WAIT_TIME_OUT);
-#endif
-    if(pRet == 0)//失败返回-1
-    {
-        printf("AT+QIOPEN1 error:%s\r\n",Lte_RX_BUF);
+    strcat(buf, portTemp);
+    strcat(buf, "\r\n");//模式
+    DBG_PRINTF("%s\r\n", buf);
+
+    if (SendATCommand(buf, "+QMTOPEN: 0,0", WAIT_TIME_OUT) == 0){
+        DBG_PRINTF("error:%s\r\n", msgRecBuff);
         return -1;
     }
+    DBG_PRINTF("AT+QMTOPEN:%s\r\n", msgRecBuff);
+
+    memset(buf, 0, 128);//必须先清空
+    strcpy(buf, "AT+QMTCONN=0,\"");
+    strcat(buf, mqtt.clientID.cstring);
+    strcat(buf, "\",\"");
+    strcat(buf, mqtt.username.cstring);
+    strcat(buf, "\",\"");
+    strcat(buf, mqtt.password.cstring);
+    strcat(buf, "\"\r\n");//模式
+    DBG_PRINTF("AT+QMTCONN BUF:%s\r\n", buf);
+
+    if (SendATCommand(buf, "+QMTCONN: 0,0,0", WAIT_TIME_OUT) == 0) {
+        DBG_PRINTF("error:%s\r\n", msgRecBuff);
+        return -1;
+    }
+    DBG_PRINTF("AT+QMTCONN BUF:%s\r\n", msgRecBuff);
+    HAL_Delay(200);
+
     return 0;//通过返回0
 }
 
@@ -297,8 +304,15 @@ int MQTTClient_connect() {
  * 输入：无
  * 返回：无
  */
-int MQTTClient_disconnect(int client, char *conn_opts) {
-
+int MQTTClient_disconnect() {
+     if (SendATCommand("AT+QMTDISC=0\r\n", "OK", WAIT_TIME_OUT) == 0) {
+         return -1;
+     }
+    HAL_Delay(200);
+    if (SendATCommand("AT+QMTCLOSE=0\r\n", "OK", WAIT_TIME_OUT) == 0) {
+        return -1;
+    }
+     return 0;
 }
 
 /*
@@ -332,47 +346,26 @@ void mqttTask() {
     switch (MCU_STATUS.MQTT_STATUS) {
         case MQTT_OFFLINE:
             DBG_PRINTF("MQTT_OFFLINE\r\n");
-
             MQTTClient_init();
-
-#if 1
-
-            if (SendATCommand("AT+CGPADDR=1\r\n", "OK", WAIT_TIME_OUT) != 0) {
-            }
-            DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
-
-            if (SendATCommand("AT+QMTCFG=\"aliauth\",0,\"guj8fzw4Cqm\",\"ning\",\"08b9d73fa2df4df8ea9024a8d1826a0e\"\r\n", "OK", WAIT_TIME_OUT) != 0) {
-            }
-            DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
-
-            if (SendATCommand("AT+CGPADDR=1\r\n", "OK", WAIT_TIME_OUT) != 0) {
-            }
-            DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
-            if (SendATCommand("AT+QMTOPEN=0,\"iot-06z00ajwgt8j2qm.mqtt.iothub.aliyuncs.com\",1883\r\n", "+QMTOPEN:0,0", WAIT_TIME_OUT) != 0) {
-            }
-            if (SendATCommand("AT+QMTCONN=0,\"ning\"\r\n", "+QMTCONN:0,0,0", WAIT_TIME_OUT) != 0){
-
-            }
-            DBG_PRINTF("AT+QMTCONN:%s\r\n", msgRecBuff);
-#endif
+            MQTTParam_init();
             MCU_STATUS.MQTT_STATUS = MQTT_LOGIN;
             break;
 
         case MQTT_LOGIN:
-
-
-            if (SendATCommand("AT+QMTSUB=0,1,\"/guj8fzw4Cqm/ning/user/get\",2\r\n", "OK", WAIT_TIME_OUT) != 0) {
-
-            }
-            DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
-
-            if (SendATCommand("AT+QMTPUBEX=0,0,0,0,\"/sys/guj8fzw4Cqm/ning/thing/model/up_raw\",4\r\n", ">", WAIT_TIME_OUT) != 0) {
-                DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
-            }
-						
-            if (SendATCommand("this", "+QMTPUBEX:0,0,0", WAIT_TIME_OUT) != 0) {
-
-            }
+            MQTTClient_disconnect();
+            MQTTClient_connect(mqttConnectData);
+//            if (SendATCommand("AT+QMTSUB=0,1,\"/guj8fzw4Cqm/ning/user/get\",2\r\n", "OK", WAIT_TIME_OUT) != 0) {
+//
+//            }
+//            DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
+//
+//            if (SendATCommand("AT+QMTPUBEX=0,0,0,0,\"/sys/guj8fzw4Cqm/ning/thing/model/up_raw\",4\r\n", ">", WAIT_TIME_OUT) != 0) {
+//                DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
+//            }
+//
+//            if (SendATCommand("this", "+QMTPUBEX:0,0,0", WAIT_TIME_OUT) != 0) {
+//
+//            }
 //            DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
 //            if (SendATCommand("AT+QMTDISC=0\r\n", "OK", WAIT_TIME_OUT) != 0) {
 //                DBG_PRINTF("run 0:%s\r\n", msgRecBuff);
