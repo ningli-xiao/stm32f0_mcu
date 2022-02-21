@@ -62,10 +62,9 @@ extern I2C_HandleTypeDef hi2c1;
 extern TIM_HandleTypeDef htim3;
 extern UART_HandleTypeDef huart1;
 extern UART_HandleTypeDef huart2;
+/* USER CODE BEGIN EV */
 extern DMA_HandleTypeDef hdma_usart1_rx;
 extern DMA_HandleTypeDef hdma_usart2_rx;
-/* USER CODE BEGIN EV */
-
 /* USER CODE END EV */
 
 /******************************************************************************/
@@ -165,6 +164,7 @@ void TIM3_IRQHandler(void)
             if(Timer_1s>=1000){
                 Timer_1s=0;
                 if(Task_timer.boardSendTimer1s>0)Task_timer.boardSendTimer1s--;
+                if(Task_timer.publishTimer1s>0)Task_timer.publishTimer1s--;
             }
             if(Timer_100ms>=100) {
                 Timer_100ms = 0;

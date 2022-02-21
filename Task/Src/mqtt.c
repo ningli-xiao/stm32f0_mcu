@@ -87,10 +87,9 @@ int GET_IMEI(void) {
         return -1;
     }
     HAL_Delay(100);
-    pRet = FindStrFroMem((char *) msgRecBuff, msgRxSize, "AT+GSN");
-    DBG_PRINTF("pRet=%s\r\n", pRet);
+    //pRet = FindStrFroMem((char *) msgRecBuff, msgRxSize, "AT+GSN");
     DBG_PRINTF("msgRecBuff=%s\r\n", msgRecBuff);
-    memcpy(&MODULE_IMEI[0], pRet + 9, 15);
+    memcpy(&MODULE_IMEI[0], &msgRecBuff[2], 15);//去除0D/0A
     DBG_PRINTF("LTE_GET_IMEI Success:%s\r\n", &MODULE_IMEI[0]);
     return 0;
 }
@@ -99,17 +98,14 @@ int GET_IMEI(void) {
 int GET_ICCID(void) {
     char *pRet = 0;
     uint8_t i = 0;
-    if (SendATCommand("AT+CCID\r\n", "OK", WAIT_TIME_IN) == 0) {
+    if (SendATCommand("AT+QCCID\r\n", "OK", WAIT_TIME_IN) == 0) {
         DBG_PRINTF("LTE_GET_ICCID Fail\r\n");
         return -1;
     }
-    pRet = FindStrFroMem((char *) msgRecBuff, msgRxSize, "+CCID:");
-    pRet += 7;
+    pRet = FindStrFroMem((char *) msgRecBuff, msgRxSize, "+QCCID:");
     DBG_PRINTF("pRet=%s\r\n", pRet);
-    for (i = 0; i < 10; i++) {
-        MODULE_ICCID[i] = ((pRet[i * 2] - 0x30) << 4) | (pRet[i * 2 + 1] - 0x30);
-    }
-    DBG_PRINTF("LTE_GET_ICCID Success\r\n");
+    memcpy(&MODULE_ICCID[0], pRet + 8, 20);
+    DBG_PRINTF("LTE_GET_ICCID Success:%s\r\n", MODULE_ICCID);
     return 0;
 }
 
@@ -233,7 +229,9 @@ int MQTTClient_init() {
     if (SendATCommand("ATE0\r\n", "OK", WAIT_TIME_OUT) == 0) {
         DBG_PRINTF("MQTT_OPENING\r\n");
         ModuleOpen();
-        Wait_LTE_RDY(5);//等待开机
+       if(Wait_LTE_RDY(5)!=0){
+				 return -1;
+			 }
     } else {
         DBG_PRINTF("MQTT was OPENED\r\n");
     }
@@ -247,8 +245,9 @@ int MQTTClient_init() {
     Wait_Signal_RDY(3);
 
     strcpy(mqttTopic, PUBLISH_TOPIC);
-    strcat(mqttTopic, &MODULE_IMEI[8]);//拼接后8位数据
+    strcat(mqttTopic, &MODULE_IMEI[7]);//拼接后8位数据:8-15
     DBG_PRINTF("mqttTopic:%s\r\n", mqttTopic);
+    return 0;
 }
 
 /*
@@ -313,6 +312,68 @@ int MQTTClient_disconnect() {
     return 0;
 }
 
+
+/*
+ * 函数名：GetCellLoc
+ * 功能：获取定位数据
+ * 输入：无
+ * 返回：无
+ */
+int GetCellLoc()
+{
+    if (SendATCommand("AT+QIDEACT=1\r\n", "OK",WAIT_TIME_OUT) == 0) {
+        DBG_PRINTF("QIDEACT :%s\r\n", msgRecBuff);
+        //return -1;
+    }
+    DBG_PRINTF("QIDEACT :%s\r\n", msgRecBuff);
+
+    if (SendATCommand("AT+QICSGP=1,1,\"CMNET\","","",1\r\n", "OK",WAIT_TIME_OUT) == 0) {
+        DBG_PRINTF("QICSGP :%s\r\n", msgRecBuff);
+        return -1;
+    }
+    DBG_PRINTF("QICSGP :%s\r\n", msgRecBuff);
+
+    if (SendATCommand("AT+QIACT=1\r\n", "OK",WAIT_TIME_OUT) == 0) {
+        DBG_PRINTF("QIACT :%s\r\n", msgRecBuff);
+        //return -1;
+    }
+    DBG_PRINTF("QIACT :%s\r\n", msgRecBuff);
+
+
+    if (SendATCommand("AT+QLOCCFG=\"contextid\",1\r\n", "OK", WAIT_TIME_OUT) == 0) {
+        DBG_PRINTF("contextid :%s\r\n", msgRecBuff);
+        //return -1;
+    }
+    DBG_PRINTF("contextid :%s\r\n", msgRecBuff);
+
+    if (SendATCommand("AT+QLOCCFG=\"timeout\",10\r\n", "OK", WAIT_TIME_OUT) == 0) {
+        DBG_PRINTF("timeout :%s\r\n", msgRecBuff);
+        //return -1;
+    }
+    DBG_PRINTF("timeout :%s\r\n", msgRecBuff);
+
+    if (SendATCommand("AT+QLOCCFG=\"tocken\",\"QM162r747j189N3Q\"\r\n", "OK", WAIT_TIME_OUT) == 0) {
+        DBG_PRINTF("tocken :%s\r\n", msgRecBuff);
+       // return -1;
+    }
+    DBG_PRINTF("tocken :%s\r\n", msgRecBuff);
+
+//    if (SendATCommand("AT+QLOCCFG=\"latorder\",1\r\n", "OK", WAIT_TIME_OUT) == 0) {
+//        DBG_PRINTF("latorder :%s\r\n", msgRecBuff);
+//        return -1;
+//    }
+//    DBG_PRINTF("latorder :%s\r\n", msgRecBuff);
+
+    if (SendATCommand("AT+QCELLLOC\r\n", "OK",WAIT_TIME_OUT) == 0) {
+        DBG_PRINTF("QCELLLOC :%s\r\n", msgRecBuff);
+        //return -1;
+    }
+    DBG_PRINTF("QCELLLOC :%s\r\n", msgRecBuff);
+
+    DBG_PRINTF("loc :%s\r\n", msgRecBuff);
+    return 0;
+}
+
 /*
  * 函数名：MQTTClient_pubMessage
  * 功能：发送注册包
@@ -321,8 +382,8 @@ int MQTTClient_disconnect() {
  */
 int MQTTClient_pubMessage(char *pubTopic, char *payload) {
     char buf[128] = {0};
-    char lenTemp[4]={0};
-    sprintf(lenTemp,"%d",strlen(payload));
+    char lenTemp[4] = {0};
+    sprintf(lenTemp, "%d", strlen(payload));
 
 
     strcpy(buf, "AT+QMTPUBEX=0,0,0,0,\"");
@@ -359,11 +420,58 @@ int MQTTClient_subMessage(char *subTopic) {
     strcat(buf, "\r\n");//模式
     DBG_PRINTF("%s\r\n", buf);
 
-    if (SendATCommand(buf, "OK", WAIT_TIME_OUT) == 0) {
+    if (SendATCommand(buf, "+QMTSUB: 0,1,0,2", WAIT_TIME_OUT) == 0) {
         DBG_PRINTF("sub error:%s\r\n", msgRecBuff);
         return -1;
     }
     return 0;
+}
+
+/*
+ * 函数名：MQTTClient_checkMessage
+ * 功能：检查收到的消息是否正确
+ * 输入：无
+ * 返回：无
+ */
+char *MQTTClient_checkMessage(char *message, char *topic) {
+    //假设校验通过,//0X5A="Z";0X4e="N";
+    uint8_t checkValue = 0;
+    char checkValueStr[2] = {0};
+    char *ptr = NULL;
+    char *ptrN = NULL;
+    char *ptrZ = NULL;
+    ptr = FindStrFroMem(message, msgRxSize, topic);
+    if (ptr == 0) {
+        DBG_PRINTF("not found topic \r\n");
+        return NULL;
+    }
+    //DBG_PRINTF("ptr befor%s\r\n",ptr);
+
+
+    ptr = strstr(ptr, ",");
+    ptr += 2;//字符串开始位置
+    //DBG_PRINTF("ptr check%s\r\n",ptr);
+    //查找分隔符位置
+    ptrN = strstr(ptr, "N");
+    ptrZ = strstr(ptr, "Z");
+
+    if ((ptrZ - ptrN) == 2) {
+        memcpy(checkValueStr, ptrN + 1, 1);
+        checkValue = atoi(checkValueStr);
+    } else if ((ptrZ - ptrN) == 3) {
+        memcpy(checkValueStr, ptrN + 1, 2);
+        checkValue = atoi(checkValueStr);
+    } else {
+        DBG_PRINTF("checkValue len error:%d\r\n", ptrZ - ptrN);
+        return NULL;
+    }
+
+    if (CheckXorAndMod(ptr, (ptrN - ptr )) != checkValue) {
+        DBG_PRINTF("%d\r\n", checkValue);
+        return NULL;
+    }
+    *(++ptrZ) = 0;
+    return ptr;
 }
 
 /*
@@ -399,8 +507,12 @@ void mqttTask() {
     switch (MCU_STATUS.MQTT_STATUS) {
         case MQTT_OFFLINE:
             DBG_PRINTF("MQTT_OFFLINE\r\n");
-            MQTTClient_init();
+            if(MQTTClient_init()!=0)
+            {
+                return ;
+            }
             MQTTParam_init();
+            HAL_Delay(500);
             MCU_STATUS.MQTT_STATUS = MQTT_LOGIN;
             break;
 
@@ -411,38 +523,42 @@ void mqttTask() {
             }
             MQTTClient_connect(mqttConnectData);
             net_time = LTE_Get_Real_Time();
-            DBG_PRINTF("TIME:%lu\r\n", net_time);
+
+            MQTTClient_subMessage(SUBSCRIBE_TOPIC);
+            HAL_Delay(500);
             MCU_STATUS.MQTT_STATUS = MQTT_ONLINE;
             break;
 
         case MQTT_ONLINE:
-            if (boardSendFlag==1){
-                boardSendFlag=0;
-                if(MQTTClient_pubMessage(mqttTopic,msgSendBuff)==0)
-                {
-                    boardSendOkFlag=1;
+            if (boardSendFlag == 1) {
+                boardSendFlag = 0;
+
+                if (MQTTClient_pubMessage(mqttTopic, msgSendBuff) == 0) {
+                    boardSendOkFlag = 1;
                 }
             }
-            if(msgRxFlag==1)
-            {
-                msgRxFlag=0;
-                //假设校验通过
-                memset(boardsSendBuff,0,BOARDS_SEND_LEN);
-                memcpy(boardsSendBuff,msgRecBuff,msgRxSize);
-                boardsDownFlag=1;
+
+            if (msgRxFlag == 1) {
+                msgRxFlag = 0;
+                char *ptr = NULL;
+                ptr = MQTTClient_checkMessage(msgRecBuff, SUBSCRIBE_TOPIC);
+                if (ptr != NULL) {
+                    memset(boardsSendBuff, 0, BOARDS_SEND_LEN);
+                    strcpy(boardsSendBuff, ptr);
+                    boardsDownFlag = 1;
+                }
             }
+
             if (Task_timer.publishTimer1s == 0) {
                 Task_timer.publishTimer1s = PUBLISH_INTERVAL;
-                if(MQTTClient_pubMessage(mqttTopic,"LOC:")==0)
-                {
-                    boardSendOkFlag=1;
-                }
+                 GetCellLoc();
+//                if (MQTTClient_pubMessage(mqttTopic, "LOC:") == 0) {
+//                    boardSendOkFlag = 1;
+//                }
             }
 
             break;
         default:
-
-
             break;
     }
 }

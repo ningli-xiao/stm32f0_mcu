@@ -57,7 +57,7 @@ char* FindStrFroMem(char *buf, uint16_t buflen, char *str)
 
 /*
  * 函数名：Int2String
- * 功能：将数组转化为对应的字符串值
+ * 功能：将数转化为对应的字符串值
  * 输入：num，str
  * 返回：生成的字符串地址
  */

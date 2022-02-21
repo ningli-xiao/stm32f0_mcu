@@ -47,7 +47,7 @@ void boardsCommTask() {
             if (boardsRxFlag == 1) {
                 boardsRxFlag = 0;
                 if (FindStrFroMem(boardsRecBuff, boardsRxSize, "RQ_TIME") == 0) {
-                    if(boardSendFlag == 0) {
+                    if(boardSendFlag == 0 && boardsRxSize>0) {
                         memset(msgSendBuff, 0, MSG_SEND_LEN);
                         memcpy(msgSendBuff, boardsRecBuff, boardsRxSize);
                         boardSendFlag = 1;
@@ -65,7 +65,7 @@ void boardsCommTask() {
             //ÏÂÐÐÖÐ¼Ì
             if (boardsDownFlag == 1) {
                 boardsDownFlag=0;
-                HAL_UART_Transmit(&huart2, boardsSendBuff, bufLen, 1000);
+                HAL_UART_Transmit(&huart2, boardsSendBuff, strlen(boardsSendBuff), 1000);
             }
 
             if (boardSendOkFlag == 1) {

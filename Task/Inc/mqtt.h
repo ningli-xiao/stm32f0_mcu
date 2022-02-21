@@ -17,7 +17,7 @@
 #define CLIENT_PASS "1"
 #define SUBSCRIBE_TOPIC "testsub"
 #define PUBLISH_TOPIC "testpub"
-#define PUBLISH_INTERVAL 400//400s
+#define PUBLISH_INTERVAL 10//400s
 #define PUBLISH_PAYLOEAD "hello I'm from gprs module"
 
 //#define BROKER_SITE "183.230.40.39"

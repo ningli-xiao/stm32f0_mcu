@@ -15,42 +15,6 @@ static int SendHeartPacket(void) {
 
 }
 
-
-/*
- * 函数名：SendDataPacket
- * 功能：发送数据包
- * 输入：无
- * 返回：无
- */
-static int SendDataPacket(uint8_t value) {
-
-}
-
-/*
- * 函数名：Wait_SendDataPacket_RDY
- * 功能：重复发送N次，等待发送完毕
- * 输入：time：最大发送次数，type：发送类型
- * 返回：无
- */
-static int Wait_SendDataPacket_RDY(uint8_t time,uint8_t type)
-{
-    while(--time)
-    {
-        if(SendDataPacket(type) != 0)
-        {
-            DBG_PRINTF(" Send_data_Packet  Fail \r\n");
-        }
-        else
-        {
-            DBG_PRINTF(" Send_data_Packet  Success \r\n");
-            return 0;
-        }
-        HAL_Delay(1000);
-    }
-    DBG_PRINTF(" Send_data_Packet Timeout \r\n");
-    return -1;
-}
-
 /*
  * 函数名：RecDataPacket
  * 功能：处理接受到的数据
