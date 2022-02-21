@@ -112,7 +112,7 @@ int main(void)
   MX_SPI2_Init();
   MX_USART1_UART_Init();
   MX_USART2_UART_Init();
-  //MX_IWDG_Init();
+  MX_IWDG_Init();
   MX_TIM3_Init();
 
   /* Initialize interrupts */
@@ -125,7 +125,7 @@ int main(void)
     HAL_UART_Receive_DMA(&huart1, msgRecBuff, MSG_REC_LEN);
 
     DBG_PRINTF("hello world\r\n");
-		HAL_Delay(200);
+    HAL_Delay(200);
   /* USER CODE END 2 */
 
   /* Infinite loop */
@@ -208,6 +208,12 @@ static void MX_NVIC_Init(void)
   /* USART2_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(USART2_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(USART2_IRQn);
+  /* EXTI0_1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(EXTI0_1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI0_1_IRQn);
+  /* EXTI4_15_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(EXTI4_15_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(EXTI4_15_IRQn);
 }
 
 /* USER CODE BEGIN 4 */

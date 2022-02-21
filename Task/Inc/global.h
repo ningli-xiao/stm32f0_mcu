@@ -43,8 +43,10 @@ typedef struct
 /* 按键状态机的状态 */
 typedef enum {
     MQTT_OFFLINE = 0x00, //离线
-    MQTT_LOGIN  = 0x01, // 正在登录
-    MQTT_ONLINE  = 0x02, // 在线
+    MQTT_LOGIN,  //正在登录
+    MQTT_ONLINE,//在线
+    MQTT_RESTART,
+    MQTT_ALL_RESTART
 }MQTT_STATUS_LIST;
 
 /* 控制模式的状态 */
@@ -75,11 +77,12 @@ extern uint8_t boardsRxFlag;       //接收完成标记
 extern uint32_t boardsRxSize;
 extern uint8_t boardsDownFlag;
 extern uint8_t io2DownFlag;
-
+extern uint8_t rstDownFlag;
 extern uint32_t net_time;
 /*******************全局函数接口*********************/
 extern char* Int2String(int num,char *str);//10进制
 extern char* FindStrFroMem(char *buf, uint16_t buflen, char *str);
 extern uint8_t CheckXorAndMod(uint8_t *data, uint32_t len);
 extern uint32_t time_stamp_Set(uint16_t syear,uint8_t smon,uint8_t sday,uint8_t hour,uint8_t min,uint8_t sec);
+extern void SoftReset(void);
 #endif

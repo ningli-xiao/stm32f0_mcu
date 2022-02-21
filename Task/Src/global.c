@@ -17,7 +17,6 @@ uint8_t msgSendBuff[MSG_SEND_LEN] = {0}; //发送缓存区
 uint8_t msgRecBuff[MSG_REC_LEN] = {0}; //接收缓存区
 uint8_t msgRxFlag=0;       //接收完成标记
 uint32_t msgRxSize=0;
-
 uint8_t boardsSendBuff[BOARDS_SEND_LEN] = {0}; //发送缓存区
 uint8_t boardsRecBuff[BOARDS_REC_LEN] = {0}; //接收缓存区
 uint8_t boardsRxFlag=0;       //接收完成标记
@@ -25,6 +24,7 @@ uint8_t boardsDownFlag=0;       //下发标志
 uint32_t boardsRxSize=0;
 
 uint8_t io2DownFlag=0;
+uint8_t rstDownFlag=0;
 
 uint32_t net_time = 0;
 
@@ -157,4 +157,15 @@ uint32_t time_stamp_Set(uint16_t syear,uint8_t smon,uint8_t sday,uint8_t hour,ui
     seccount+=(uint32_t)min*60; //分钟秒钟数
     seccount+=sec;//最后的秒钟加上去
     return seccount;
+}
+/*
+ * 函数名：SoftReset
+ * 功能：软件复位，接受到OTA指令后执行
+ * 输入：无
+ * 返回：无
+ */
+void SoftReset(void)
+{
+    __set_PRIMASK(1);
+    HAL_NVIC_SystemReset();
 }

@@ -16,7 +16,7 @@ struct TaskStruct TaskST[]={
         {0,100,0,mqttTask},
         {0,100,0,boardsCommTask},
 //        {0,100,0,dataProcessTask},
-//        {0,10,0,feedTask},
+        {0,10,0,feedTask},
 };
 
 /*

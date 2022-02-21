@@ -11,17 +11,6 @@ uint8_t mqttTopic[30] = {"0"};//根据IMEI和topic构建新主题
 MQTTPacket_connectData mqttConnectData = MQTTPacket_connectData_initializer;
 
 /*
- * 函数名：SoftReset
- * 功能：软件复位，接受到OTA指令后执行
- * 输入：无
- * 返回：无
- */
-static void SoftReset(void) {
-    //__set_FAULTMASK(1);
-    HAL_NVIC_SystemReset();
-}
-
-/*
  * 函数名：ModuleClose
  * 功能：4G模组关机
  * 输入：无
@@ -325,52 +314,45 @@ int GetCellLoc()
         DBG_PRINTF("QIDEACT :%s\r\n", msgRecBuff);
         //return -1;
     }
-    DBG_PRINTF("QIDEACT :%s\r\n", msgRecBuff);
 
     if (SendATCommand("AT+QICSGP=1,1,\"CMNET\","","",1\r\n", "OK",WAIT_TIME_OUT) == 0) {
         DBG_PRINTF("QICSGP :%s\r\n", msgRecBuff);
         return -1;
     }
-    DBG_PRINTF("QICSGP :%s\r\n", msgRecBuff);
 
-    if (SendATCommand("AT+QIACT=1\r\n", "OK",WAIT_TIME_OUT) == 0) {
+    if (SendATCommand(" AT+QENG=\"servingcell\"\r\n", "OK",WAIT_TIME_OUT) == 0) {
+        DBG_PRINTF("QENG :%s\r\n", msgRecBuff);
+        //return -1;
+    }
+    DBG_PRINTF("QENG :%s\r\n", msgRecBuff);
+    
+    if (SendATCommand("AT+QIACT=1\r\n", "OK",WAIT_TIME_IN) == 0) {
         DBG_PRINTF("QIACT :%s\r\n", msgRecBuff);
         //return -1;
     }
-    DBG_PRINTF("QIACT :%s\r\n", msgRecBuff);
 
-
-    if (SendATCommand("AT+QLOCCFG=\"contextid\",1\r\n", "OK", WAIT_TIME_OUT) == 0) {
-        DBG_PRINTF("contextid :%s\r\n", msgRecBuff);
-        //return -1;
+    if (SendATCommand("AT+QLBSCFG=\"tocken\"\r\n", "OK", WAIT_TIME_IN) == 0) {
+        DBG_PRINTF("tocken :%s\r\n", msgRecBuff);
+        // return -1;
     }
-    DBG_PRINTF("contextid :%s\r\n", msgRecBuff);
 
-    if (SendATCommand("AT+QLOCCFG=\"timeout\",10\r\n", "OK", WAIT_TIME_OUT) == 0) {
-        DBG_PRINTF("timeout :%s\r\n", msgRecBuff);
-        //return -1;
-    }
-    DBG_PRINTF("timeout :%s\r\n", msgRecBuff);
-
-    if (SendATCommand("AT+QLOCCFG=\"tocken\",\"QM162r747j189N3Q\"\r\n", "OK", WAIT_TIME_OUT) == 0) {
+    if (SendATCommand("AT+QLBSCFG=\"tocken\",\"B0Us923u9z7889kd\"\r\n", "OK", WAIT_TIME_IN) == 0) {
         DBG_PRINTF("tocken :%s\r\n", msgRecBuff);
        // return -1;
     }
-    DBG_PRINTF("tocken :%s\r\n", msgRecBuff);
 
-//    if (SendATCommand("AT+QLOCCFG=\"latorder\",1\r\n", "OK", WAIT_TIME_OUT) == 0) {
-//        DBG_PRINTF("latorder :%s\r\n", msgRecBuff);
-//        return -1;
-//    }
-//    DBG_PRINTF("latorder :%s\r\n", msgRecBuff);
 
-    if (SendATCommand("AT+QCELLLOC\r\n", "OK",WAIT_TIME_OUT) == 0) {
+    if (SendATCommand("AT+QLBSCFG=\"latorder\",1\r\n", "OK", WAIT_TIME_IN) == 0) {
+        DBG_PRINTF("latorder :%s\r\n", msgRecBuff);
+        return -1;
+    }
+
+
+    if (SendATCommand("AT+QLBS=0\r\n", "OK",WAIT_TIME_OUT) == 0) {
         DBG_PRINTF("QCELLLOC :%s\r\n", msgRecBuff);
         //return -1;
     }
     DBG_PRINTF("QCELLLOC :%s\r\n", msgRecBuff);
-
-    DBG_PRINTF("loc :%s\r\n", msgRecBuff);
     return 0;
 }
 
@@ -503,7 +485,7 @@ int MQTTClient_tunsMessage(char *subTopic) {
  * 返回：无
  */
 void mqttTask() {
-    static uint8_t restart_count = 0;
+
     switch (MCU_STATUS.MQTT_STATUS) {
         case MQTT_OFFLINE:
             DBG_PRINTF("MQTT_OFFLINE\r\n");
@@ -551,12 +533,43 @@ void mqttTask() {
 
             if (Task_timer.publishTimer1s == 0) {
                 Task_timer.publishTimer1s = PUBLISH_INTERVAL;
-                 GetCellLoc();
-//                if (MQTTClient_pubMessage(mqttTopic, "LOC:") == 0) {
-//                    boardSendOkFlag = 1;
-//                }
+                 //GetCellLoc();
+                if (MQTTClient_pubMessage(mqttTopic, "LOC:") == 0) {
+                    boardSendOkFlag = 1;
+                }
             }
 
+            if(io2DownFlag==1){
+                io2DownFlag=0;
+                uint8_t ioValue=0;
+                uint8_t i=0;
+                for(i=0;i<8;i++){
+                    HAL_Delay(2);
+                    ioValue+=HAL_GPIO_ReadPin(IO2_GPIO_Port,IO2_Pin);
+                }
+                if(ioValue<2) {
+                    MQTTClient_pubMessage(mqttTopic, "ALERTD:1N9Z");
+                }
+            }
+
+            if(rstDownFlag==1){
+                rstDownFlag=0;
+                uint8_t rstValue=0;
+                uint8_t i=0;
+                for(i=0;i<8;i++){
+                    HAL_Delay(2);
+                    rstValue+=HAL_GPIO_ReadPin(RST_EC200_GPIO_Port,RST_EC200_Pin);
+                }
+                if(rstValue<2) {
+                    MCU_STATUS.MQTT_STATUS = MQTT_ALL_RESTART;
+                }
+            }
+            
+            break;
+        case MQTT_ALL_RESTART:
+            ModuleClose();
+            HAL_Delay(3000);
+            SoftReset();
             break;
         default:
             break;

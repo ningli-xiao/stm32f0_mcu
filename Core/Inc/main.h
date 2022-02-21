@@ -72,6 +72,7 @@ void Error_Handler(void);
 #define IO16_GPIO_Port GPIOA
 #define RST_EC200_Pin GPIO_PIN_1
 #define RST_EC200_GPIO_Port GPIOA
+#define RST_EC200_EXTI_IRQn EXTI0_1_IRQn
 #define AT_TX_Pin GPIO_PIN_2
 #define AT_TX_GPIO_Port GPIOA
 #define AT_RX_Pin GPIO_PIN_3
@@ -84,6 +85,7 @@ void Error_Handler(void);
 #define IO13_GPIO_Port GPIOA
 #define IO2_Pin GPIO_PIN_7
 #define IO2_GPIO_Port GPIOA
+#define IO2_EXTI_IRQn EXTI4_15_IRQn
 #define ADC1_Pin GPIO_PIN_0
 #define ADC1_GPIO_Port GPIOB
 #define ADC2_Pin GPIO_PIN_1
