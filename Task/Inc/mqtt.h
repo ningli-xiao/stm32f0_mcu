@@ -86,6 +86,8 @@ typedef struct
     uint16_t port;
 } MQTTPacket_connectData;
 #define MQTTPacket_connectData_initializer { 4, {NULL, {0, NULL}}, 60, 1, {NULL, {0, NULL}}, {NULL, {0, NULL}}}
+extern char *SendATCommand(char *pCommand, char *pEcho, uint32_t outTime);
+extern int Wait_LTE_RDY(uint8_t time);
 extern void mqttTask();
 extern int LTE_Get_Real_Time(void);
 #endif

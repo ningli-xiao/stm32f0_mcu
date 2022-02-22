@@ -41,6 +41,20 @@ int SendtoBoard(char *message) {
 void boardsCommTask() {
     uint8_t bufLen = 0;
     char timeTemp[10]={0};
+
+    if(rstDownFlag==1){
+        rstDownFlag=0;
+        uint8_t rstValue=0;
+        uint8_t i=0;
+        for(i=0;i<8;i++){
+            HAL_Delay(2);
+            rstValue+=HAL_GPIO_ReadPin(RST_EC200_GPIO_Port,RST_EC200_Pin);
+        }
+        if(rstValue<2) {
+            MCU_STATUS.MQTT_STATUS = MQTT_ALL_RESTART;
+        }
+    }
+
     switch (MCU_STATUS.MQTT_STATUS) {
         case MQTT_ONLINE:
             //ÉÏÐÐÖÐ¼Ì

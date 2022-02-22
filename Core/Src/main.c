@@ -85,7 +85,10 @@ static void MX_NVIC_Init(void);
 int main(void)
 {
   /* USER CODE BEGIN 1 */
-
+  //设置中断服务向量表···················
+    memcpy((void*)0x20000000, (void*)0x08004000, 48*4);
+    __HAL_RCC_SYSCFG_CLK_ENABLE();
+    SYSCFG->CFGR1 |= 0x03;
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/

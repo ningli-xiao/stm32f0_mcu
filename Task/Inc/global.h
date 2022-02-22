@@ -46,7 +46,8 @@ typedef enum {
     MQTT_LOGIN,  //正在登录
     MQTT_ONLINE,//在线
     MQTT_RESTART,
-    MQTT_ALL_RESTART
+    MQTT_ALL_RESTART,
+    MQTT_ERROR //意外故障,等待重启
 }MQTT_STATUS_LIST;
 
 /* 控制模式的状态 */
