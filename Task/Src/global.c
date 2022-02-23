@@ -172,7 +172,7 @@ void SoftReset(void)
 
 /*
  * 函数名：MQTT_Comma_Pos
- * 功能：软件复位，接受到OTA指令后执行
+ * 功能：查找buffer里的指定位置数据
  * 输入：buf:接受数据地址，cx:第几个分隔符
  * 返回：地址差值
  */
@@ -186,4 +186,91 @@ uint8_t MQTT_Comma_Pos(uint8_t *buf,uint8_t cx)
         buf++;
     }
     return buf-p;   //返回差值，
+}
+
+/*
+ * 函数名：NMEA_Pow
+ * 功能：各单位数乘以自己的位数
+ * 输入：m:默认10，n:位数，乘以几次10
+ * 返回：数值
+ */
+uint32_t NMEA_Pow(uint8_t m,uint8_t n)
+{
+    uint32_t result=1;
+    while(n--)result*=m;
+    return result;
+}
+
+/* 返回ch字符在sign数组中的序号 */
+int getIndexOfSigns(char ch) {
+    if (ch >= '0' && ch <= '9') {
+        return ch - '0';
+    }
+    if (ch >= 'A' && ch <= 'F') {
+        return ch - 'A' + 10;
+    }
+    if (ch >= 'a' && ch <= 'f') {
+        return ch - 'a' + 10;
+    }
+    return -1;
+}
+
+long hexToDec(char *source)
+{
+    long sum = 0;
+    long t = 1;
+    int i, len;
+
+    len = strlen(source);
+    for(i=len-1; i>=0; i--)
+    {
+        sum += t * getIndexOfSigns(*(source + i));
+        t *= 16;
+    }
+
+    return sum;
+}
+
+/*
+ * 函数名：MQTT_Str2num
+ * 功能：软件复位，接受到OTA指令后执行
+ * 输入：buf:接受数据地址，dx:第几个分隔符
+ * 返回：数值
+ */
+int MQTT_Str2num(uint8_t *buf,uint8_t*dx)
+{
+    uint8_t *p=buf;
+    uint32_t ires=0,fres=0;
+    uint8_t ilen=0,flen=0,i;//整数长度，小数长度，i
+    uint8_t mask=0;//小数和符号标志位
+    int res;
+    while(1) //得到整数和小数的长度
+    {
+        if(*p=='-'){mask|=0X02;p++;}//是负数
+        if(*p==','||(*p=='*'))break;//遇到结束了
+        if(*p=='.'){mask|=0X01;p++;}//遇到小数点了
+        else if(*p>'9'||(*p<'0'))   //有非法字符
+        {
+            ilen=0;
+            flen=0;
+            break;
+        }
+        if(mask&0X01)flen++;
+        else ilen++;
+        p++;
+    }
+    if(mask&0X02)buf++; //去掉负号
+    for(i=0;i<ilen;i++) //得到整数部分数据
+    {
+        ires+=NMEA_Pow(10,ilen-1-i)*(buf[i]-'0');
+    }
+    if(flen>2)flen=2;   //最多取2位小数
+    *dx=flen;           //小数点位数
+    for(i=0;i<flen;i++) //得到小数部分数据
+    {
+        fres+=NMEA_Pow(10,flen-1-i)*(buf[ilen+1+i]-'0');
+    }
+    res=ires*NMEA_Pow(10,flen)+fres;
+    if(mask&0X02)res=-res;
+    return res;
 }

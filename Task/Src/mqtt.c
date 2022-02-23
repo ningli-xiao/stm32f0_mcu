@@ -4,12 +4,13 @@
 #include "mqtt.h"
 #include "global.h"
 #include "boardsComm.h"
+#include "iwdg.h"
 
 uint8_t MODULE_IMEI[16] = {"0"};
 uint8_t MODULE_ICCID[21] = {"0"};
 uint8_t mqttTopic[30] = {"0"};//根据IMEI和topic构建新主题
 MQTTPacket_connectData mqttConnectData = MQTTPacket_connectData_initializer;
-
+Network_Location_t Network_Location;
 
 /*
  * 函数名：ModuleClose
@@ -67,6 +68,7 @@ void UART_SendData(char *pdatabuf) {
 char *SendATCommand(char *pCommand, char *pEcho, uint32_t outTime) {
     char *pRet = NULL;
     int i = 0;
+    HAL_IWDG_Refresh(&hiwdg);//发送联网耗时等待太长，喂狗一次
     if (NULL != pCommand) {
         memset(msgRecBuff, 0, MSG_REC_LEN);//必须先清空
         UART_SendData((uint8_t *) pCommand);
@@ -350,36 +352,69 @@ int MQTTClient_disconnect() {
  * 输入：无
  * 返回：无
  */
-int GetCellLoc(char *cellID,char *TAC) {
-    uint8_t *ptr, ptrNext;
+int GetCellLoc(Network_Location_t *cellInfo) {
+    uint8_t *ptr, ptrNext, dx;
     uint8_t posX = 0;//cell逗号位置
     uint8_t posY = 0;//cell下一个逗号位置
+    char cellID[10]={0};
+    char TAC[10]={0};
     if (SendATCommand("AT+QENG=\"servingcell\"\r\n", "OK", WAIT_TIME_OUT) == 0) {
-        DBG_PRINTF("QIDEACT :%s\r\n", msgRecBuff);
+        DBG_PRINTF("QENG :%s\r\n", msgRecBuff);
         return -1;
     }
+
     ptr = strstr((const char *) msgRecBuff, "+QENG:");
     if (ptr == 0) {
         return -1;
     }
+
     posX = MQTT_Comma_Pos(ptr, 6);
     posY = MQTT_Comma_Pos(ptr, 7);
     if (posX != 0XFF && posY != 0XFF) {
         memcpy(cellID,ptr+posX,(posY-posX-1));
-        DBG_PRINTF("cell id is:%s\r\n", cellID);
-    } else {
-        return -1;
+        DBG_PRINTF("cell16 id is:%s\r\n", cellID);
+        cellInfo->sCellID=hexToDec(cellID);
+        DBG_PRINTF("cell10 id is:%lu\r\n", cellInfo->sCellID);
     }
 
     posX = MQTT_Comma_Pos(ptr, 12);
     posY = MQTT_Comma_Pos(ptr, 13);
     if (posX != 0XFF && posY != 0XFF) {
         memcpy(TAC,ptr+posX,(posY-posX-1));
-        DBG_PRINTF("TAC id is:%s\r\n", TAC);
-    } else {
-        return -1;
+        DBG_PRINTF("TAC16 id is:%s\r\n", TAC);
+        cellInfo->sLac=hexToDec(TAC);
+        DBG_PRINTF("TAC10 id is:%lu\r\n", cellInfo->sLac);
     }
 
+    posX = MQTT_Comma_Pos(ptr, 4);
+    if (posX != 0XFF ) {
+        cellInfo->sMcc = MQTT_Str2num(ptr + posX, &dx);
+        DBG_PRINTF("sMcc is:%d\r\n", cellInfo->sMcc);
+    }
+
+    posX = MQTT_Comma_Pos(ptr, 5);
+    if (posX != 0XFF ) {
+        cellInfo->sMnc = MQTT_Str2num(ptr + posX, &dx);
+        DBG_PRINTF("sMnc is:%d\r\n", cellInfo->sMnc);
+    }
+
+    posX = MQTT_Comma_Pos(ptr, 7);
+    if (posX != 0XFF) {
+        cellInfo->iBsic = MQTT_Str2num(ptr + posX, &dx);
+        DBG_PRINTF("iBsic is:%d\r\n", cellInfo->iBsic);
+    }
+
+    posX = MQTT_Comma_Pos(ptr, 8);
+    if (posX != 0XFF ) {
+        cellInfo->nArfcn = MQTT_Str2num(ptr + posX, &dx);
+        DBG_PRINTF("nArfcn is:%d\r\n", cellInfo->nArfcn);
+    }
+
+    posX = MQTT_Comma_Pos(ptr, 14);
+    if (posX != 0XFF ) {
+        cellInfo->iRxLev = MQTT_Str2num(ptr + posX, &dx);
+        DBG_PRINTF("iRxLevis:%d\r\n", cellInfo->iRxLev);
+    }
     DBG_PRINTF("QCELLLOC:%s\r\n", msgRecBuff);
     return 0;
 }
@@ -508,6 +543,75 @@ int MQTTClient_tunsMessage(char *subTopic) {
 }
 
 /*
+ * 函数名：MQTClient_loc
+ * 功能：查询基站和信号信息，组包
+ * 输入：无
+ * 返回：无
+ */
+int MQTClient_sendLoc() {
+    char sigTemp[4] = {0};
+
+    char sMcc[4] = {0};
+    char sMnc[4] = {0};
+    char TacTemp[10] = {0};
+    char cellIDTemp[10] = {0};
+    char ibsicTemp[6] = {0};
+    char iRxLevTemp[6] = {0};
+    char iRxLevSubTemp[6] = {0};
+    char nArfcnTemp[6] = {0};
+    char checkTemp[3] = {0};
+    int8_t signalValue;
+    uint8_t checkValue;
+
+    GetCellLoc(&Network_Location);//
+    signalValue = GET_Signal_Quality();
+    DBG_PRINTF("signalValue:%d\r\n", signalValue);
+    memset(msgSendBuff, 0, MSG_SEND_LEN);
+    if (signalValue != -1) {
+        sprintf(sigTemp, "%d", signalValue);//打印数据回字符串
+    }
+    sprintf(sMcc, "%d", Network_Location.sMcc);
+    sprintf(sMnc, "%d", Network_Location.sMnc);
+    sprintf(TacTemp, "%lu", Network_Location.sLac);
+    sprintf(cellIDTemp, "%lu", Network_Location.sCellID);
+    sprintf(ibsicTemp, "%d", Network_Location.iBsic);
+    sprintf(iRxLevTemp, "%d", Network_Location.iRxLev);
+    sprintf(iRxLevSubTemp, "%d", Network_Location.iRxLevSub);
+    sprintf(nArfcnTemp, "%d", Network_Location.nArfcn);
+
+    strcpy(msgSendBuff, "LOC:");
+    strcat(msgSendBuff, sMcc);
+    strcat(msgSendBuff, ",");
+    strcat(msgSendBuff, sMnc);
+    strcat(msgSendBuff, ",");
+    strcat(msgSendBuff, TacTemp);
+    strcat(msgSendBuff, ",");
+    strcat(msgSendBuff, cellIDTemp);
+    strcat(msgSendBuff, ",");
+    strcat(msgSendBuff, ibsicTemp);
+    strcat(msgSendBuff, ",");
+    strcat(msgSendBuff, iRxLevTemp);
+    strcat(msgSendBuff, ",");
+
+    strcat(msgSendBuff, iRxLevSubTemp);
+    strcat(msgSendBuff, ",");
+    strcat(msgSendBuff, nArfcnTemp);
+    strcat(msgSendBuff, ":CSQ");
+    strcat(msgSendBuff, sigTemp);
+    strcat(msgSendBuff, "N");
+
+    checkValue = CheckXorAndMod(msgSendBuff, strlen(msgSendBuff) - 1);
+    sprintf(checkTemp, "%d", checkValue);
+    strcat(msgSendBuff, checkTemp);
+    strcat(msgSendBuff, "Z");//模式
+
+    if (MQTTClient_pubMessage(mqttTopic, msgSendBuff) == 0) {
+        return -1;
+    }
+    return 0;
+}
+
+/*
  * 函数名：mqttTask
  * 功能：mqtt任务执行，状态机方式
  * 输入：无
@@ -586,33 +690,8 @@ void mqttTask() {
 
             if (Task_timer.publishTimer1s == 0) {
                 Task_timer.publishTimer1s = PUBLISH_INTERVAL;
-                char sigTemp[4] = {0};
-                char cellIDTemp[10] = {0};
-                char TacTemp[10] = {0};
-                int signalValue = 0;
-                char checkTemp[2] = {0};
-                uint8_t checkValue = 0;
 
-                GetCellLoc(cellIDTemp,TacTemp);
-                signalValue = GET_Signal_Quality();
-                DBG_PRINTF("signalValue:%d\r\n", signalValue);
-                memset(msgSendBuff, 0, MSG_SEND_LEN);
-                if (signalValue != -1) {
-                    sprintf(sigTemp, "%d", signalValue);//打印数据回字符串
-                }
-                strcpy(msgSendBuff, "LOC:");
-                strcat(msgSendBuff, cellIDTemp);
-                strcat(msgSendBuff, ",");
-                strcat(msgSendBuff, TacTemp);
-                strcat(msgSendBuff, ",");
-                strcat(msgSendBuff, sigTemp);
-                strcat(msgSendBuff, "N");
-                checkValue = CheckXorAndMod(msgSendBuff, strlen(msgSendBuff)-1);
-                sprintf(checkTemp, "%d", checkValue);
-                strcat(msgSendBuff, checkTemp);
-                strcat(msgSendBuff, "Z");//模式
-
-                if (MQTTClient_pubMessage(mqttTopic, msgSendBuff) == 0) {
+                if (MQTClient_sendLoc() == 0) {
                     boardSendOkFlag = 1;
                 }
             }

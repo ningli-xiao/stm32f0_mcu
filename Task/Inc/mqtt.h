@@ -85,6 +85,19 @@ typedef struct
     MQTTString address;
     uint16_t port;
 } MQTTPacket_connectData;
+
+typedef struct
+{
+    uint16_t  sMcc;      //移动国家号码，中国为460
+    uint16_t  sMnc;      //移动网号，中国移动00，中国联通01
+    uint32_t sLac;         //位置区号码
+    uint32_t sCellID;      //小区识别码
+    uint16_t  iBsic;        //基站识别码
+    int8_t   iRxLev;       //接收报告信号强度
+    uint8_t  iRxLevSub;    //接收报告信号强度小数部分
+    uint16_t nArfcn;       //基站频点
+} Network_Location_t;
+
 #define MQTTPacket_connectData_initializer { 4, {NULL, {0, NULL}}, 60, 1, {NULL, {0, NULL}}, {NULL, {0, NULL}}}
 extern char *SendATCommand(char *pCommand, char *pEcho, uint32_t outTime);
 extern int Wait_LTE_RDY(uint8_t time);

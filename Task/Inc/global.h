@@ -12,8 +12,8 @@
 #include "usart.h"
 //加入以下代码,支持printf函数,而不需要选择use MicroLIB
 
-#define MSG_REC_LEN 128
-#define MSG_SEND_LEN 128
+#define MSG_REC_LEN 512
+#define MSG_SEND_LEN 512
 
 #define BOARDS_REC_LEN 128
 #define BOARDS_SEND_LEN 128
@@ -66,8 +66,8 @@ typedef struct
 /*******************以下为全局变量区域*********************/
 extern uint8_t msgSendBuff[MSG_SEND_LEN]; //发送缓存区
 extern uint8_t msgRecBuff[MSG_REC_LEN]; //接收缓存区
-extern uint8_t boardsSendBuff[MSG_SEND_LEN]; //发送缓存区
-extern uint8_t boardsRecBuff[MSG_REC_LEN]; //接收缓存区
+extern uint8_t boardsSendBuff[BOARDS_SEND_LEN]; //发送缓存区
+extern uint8_t boardsRecBuff[BOARDS_REC_LEN]; //接收缓存区
 
 extern MQTT_COMPONENTS MCU_STATUS;
 extern ProcessTask_timer Task_timer;
@@ -87,4 +87,6 @@ extern uint8_t CheckXorAndMod(uint8_t *data, uint32_t len);
 extern uint32_t time_stamp_Set(uint16_t syear,uint8_t smon,uint8_t sday,uint8_t hour,uint8_t min,uint8_t sec);
 extern void SoftReset(void);
 extern uint8_t MQTT_Comma_Pos(uint8_t *buf,uint8_t cx);
+extern int MQTT_Str2num(uint8_t *buf,uint8_t*dx);
+extern long hexToDec(char *source);
 #endif
