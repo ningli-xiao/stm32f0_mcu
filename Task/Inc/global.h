@@ -21,7 +21,7 @@
 //打印调试封装,正式发布时DEBUG设置为取消打印
 #define  DEBUG   1
 #if DEBUG
-#define DBG_PRINTF(fmt, args...)  \
+#define DBG_PRINTF(fmt, args...)\
 do\
 {\
     printf("Line:%d  Function:%s>> ",__LINE__, __FUNCTION__);\
@@ -86,4 +86,5 @@ extern char* FindStrFroMem(char *buf, uint16_t buflen, char *str);
 extern uint8_t CheckXorAndMod(uint8_t *data, uint32_t len);
 extern uint32_t time_stamp_Set(uint16_t syear,uint8_t smon,uint8_t sday,uint8_t hour,uint8_t min,uint8_t sec);
 extern void SoftReset(void);
+extern uint8_t MQTT_Comma_Pos(uint8_t *buf,uint8_t cx);
 #endif

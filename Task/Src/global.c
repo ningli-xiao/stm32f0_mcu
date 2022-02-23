@@ -169,3 +169,21 @@ void SoftReset(void)
     __set_PRIMASK(1);
     HAL_NVIC_SystemReset();
 }
+
+/*
+ * 函数名：MQTT_Comma_Pos
+ * 功能：软件复位，接受到OTA指令后执行
+ * 输入：buf:接受数据地址，cx:第几个分隔符
+ * 返回：地址差值
+ */
+uint8_t MQTT_Comma_Pos(uint8_t *buf,uint8_t cx)
+{
+    uint8_t *p=buf;
+    while(cx)
+    {
+        if(*buf=='*'||*buf<' '||*buf>'z')return 0XFF;//遇到'*'或者非法字符,则不存在第cx个逗号
+        if(*buf==',')cx--;
+        buf++;
+    }
+    return buf-p;   //返回差值，
+}
