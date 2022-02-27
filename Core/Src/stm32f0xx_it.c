@@ -239,10 +239,12 @@ void USART1_IRQHandler(void)
         msgRxFlag=1;
         temp = __HAL_DMA_GET_COUNTER(&hdma_usart1_rx);//
 		msgRxSize=MSG_REC_LEN-temp;
+        HAL_UART_Receive_DMA( &huart1, msgRecBuff, MSG_REC_LEN);
 //       DBG_PRINTF("temp AT:%d\r\n",temp);
     }
-    HAL_UART_Receive_DMA( &huart1, msgRecBuff, MSG_REC_LEN);
+
   /* USER CODE END USART1_IRQn 0 */
+  HAL_UART_IRQHandler(&huart1);
   /* USER CODE BEGIN USART1_IRQn 1 */
 
   /* USER CODE END USART1_IRQn 1 */
@@ -262,12 +264,11 @@ void USART2_IRQHandler(void)
         boardsRxFlag=1;
         temp = __HAL_DMA_GET_COUNTER(&hdma_usart2_rx);//
         boardsRxSize=BOARDS_REC_LEN-temp;
-        DBG_PRINTF("temp boards:%d\r\n",temp);
-				
+        HAL_UART_Receive_DMA( &huart2, boardsRecBuff, BOARDS_REC_LEN);
     }
-    HAL_UART_Receive_DMA( &huart2, boardsRecBuff, BOARDS_REC_LEN);
-		//DBG_PRINTF("back:%s\r\n",boardsRecBuff);
+	//DBG_PRINTF("back:%s\r\n",boardsRecBuff);
   /* USER CODE END USART2_IRQn 0 */
+  HAL_UART_IRQHandler(&huart2);
   /* USER CODE BEGIN USART2_IRQn 1 */
 
   /* USER CODE END USART2_IRQn 1 */
