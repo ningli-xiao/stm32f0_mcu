@@ -5,6 +5,7 @@
 #include "global.h"
 #include "boardsComm.h"
 #include "iwdg.h"
+#include "stm_flash.h"
 
 uint8_t MODULE_IMEI[16] = {"0"};
 uint8_t MODULE_ICCID[21] = {"0"};
@@ -67,7 +68,6 @@ void UART_SendData(char *pdatabuf) {
  */
 char *SendATCommand(char *pCommand, char *pEcho, uint32_t outTime) {
     char *pRet = NULL;
-    int i = 0;
     HAL_IWDG_Refresh(&hiwdg);//发送联网耗时等待太长，喂狗一次
     if (NULL != pCommand) {
         memset(msgRecBuff, 0, MSG_REC_LEN);//必须先清空
@@ -356,8 +356,8 @@ int GetCellLoc(Network_Location_t *cellInfo) {
     uint8_t *ptr, ptrNext, dx;
     uint8_t posX = 0;//cell逗号位置
     uint8_t posY = 0;//cell下一个逗号位置
-    char cellID[10]={0};
-    char TAC[10]={0};
+    char cellID[10] = {0};
+    char TAC[10] = {0};
     if (SendATCommand("AT+QENG=\"servingcell\"\r\n", "OK", WAIT_TIME_OUT) == 0) {
         DBG_PRINTF("QENG :%s\r\n", msgRecBuff);
         return -1;
@@ -371,29 +371,29 @@ int GetCellLoc(Network_Location_t *cellInfo) {
     posX = MQTT_Comma_Pos(ptr, 6);
     posY = MQTT_Comma_Pos(ptr, 7);
     if (posX != 0XFF && posY != 0XFF) {
-        memcpy(cellID,ptr+posX,(posY-posX-1));
+        memcpy(cellID, ptr + posX, (posY - posX - 1));
         DBG_PRINTF("cell16 id is:%s\r\n", cellID);
-        cellInfo->sCellID=hexToDec(cellID);
+        cellInfo->sCellID = hexToDec(cellID);
         DBG_PRINTF("cell10 id is:%lu\r\n", cellInfo->sCellID);
     }
 
     posX = MQTT_Comma_Pos(ptr, 12);
     posY = MQTT_Comma_Pos(ptr, 13);
     if (posX != 0XFF && posY != 0XFF) {
-        memcpy(TAC,ptr+posX,(posY-posX-1));
+        memcpy(TAC, ptr + posX, (posY - posX - 1));
         DBG_PRINTF("TAC16 id is:%s\r\n", TAC);
-        cellInfo->sLac=hexToDec(TAC);
+        cellInfo->sLac = hexToDec(TAC);
         DBG_PRINTF("TAC10 id is:%lu\r\n", cellInfo->sLac);
     }
 
     posX = MQTT_Comma_Pos(ptr, 4);
-    if (posX != 0XFF ) {
+    if (posX != 0XFF) {
         cellInfo->sMcc = MQTT_Str2num(ptr + posX, &dx);
         DBG_PRINTF("sMcc is:%d\r\n", cellInfo->sMcc);
     }
 
     posX = MQTT_Comma_Pos(ptr, 5);
-    if (posX != 0XFF ) {
+    if (posX != 0XFF) {
         cellInfo->sMnc = MQTT_Str2num(ptr + posX, &dx);
         DBG_PRINTF("sMnc is:%d\r\n", cellInfo->sMnc);
     }
@@ -405,13 +405,13 @@ int GetCellLoc(Network_Location_t *cellInfo) {
     }
 
     posX = MQTT_Comma_Pos(ptr, 8);
-    if (posX != 0XFF ) {
+    if (posX != 0XFF) {
         cellInfo->nArfcn = MQTT_Str2num(ptr + posX, &dx);
         DBG_PRINTF("nArfcn is:%d\r\n", cellInfo->nArfcn);
     }
 
     posX = MQTT_Comma_Pos(ptr, 14);
-    if (posX != 0XFF ) {
+    if (posX != 0XFF) {
         cellInfo->iRxLev = MQTT_Str2num(ptr + posX, &dx);
         DBG_PRINTF("iRxLevis:%d\r\n", cellInfo->iRxLev);
     }
@@ -655,7 +655,7 @@ void mqttTask() {
                 loginError++;
                 return;
             }
-
+						MQTTClient_pubMessage(mqttTopic, "version :a2");
             openError = 0;
             loginError = 0;
             MCU_STATUS.MQTT_STATUS = MQTT_ONLINE;
@@ -683,8 +683,11 @@ void mqttTask() {
                     //需要升级，写flash，进入all_restart
                     __disable_irq();
                     //写flash
+                    STMFLASH_Write(FLASH_InfoAddress, (uint16_t *)msgRecBuff, 50);
                     __enable_irq();
-                    MCU_STATUS.MQTT_STATUS = MQTT_OFFLINE;
+                    //是否加入写入校验
+                    DBG_PRINTF("write flash ota yyds\r\n");
+                    MCU_STATUS.MQTT_STATUS = MQTT_ALL_RESTART;
                 }
             }
 

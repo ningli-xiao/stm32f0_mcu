@@ -86,9 +86,9 @@ int main(void)
 {
   /* USER CODE BEGIN 1 */
   //设置中断服务向量表···················
-    memcpy((void*)0x20000000, (void*)0x08003000, 48*4);
-    SYSCFG->CFGR1 |= 0x03;
-    __enable_irq();
+//    memcpy((void*)0x20000000, (void*)0x08004000, 48*4);
+//    SYSCFG->CFGR1 |= 0x03;
+//    __enable_irq();
   /* USER CODE END 1 */
 
   /* MCU Configuration--------------------------------------------------------*/
@@ -122,12 +122,13 @@ int main(void)
   MX_NVIC_Init();
   /* USER CODE BEGIN 2 */
     HAL_TIM_Base_Start_IT(&htim3);
-    __HAL_UART_ENABLE_IT(&huart1, UART_IT_IDLE);
+		__HAL_UART_ENABLE_IT(&huart1, UART_IT_IDLE);
     __HAL_UART_ENABLE_IT(&huart2, UART_IT_IDLE);
     HAL_UART_Receive_DMA(&huart2, boardsRecBuff, BOARDS_REC_LEN);
     HAL_UART_Receive_DMA(&huart1, msgRecBuff, MSG_REC_LEN);
 
-    DBG_PRINTF("hello world\r\n");
+
+    DBG_PRINTF("hello world a111111\r\n");
     HAL_Delay(200);
   /* USER CODE END 2 */
 
@@ -205,18 +206,18 @@ static void MX_NVIC_Init(void)
   /* TIM3_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(TIM3_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(TIM3_IRQn);
-  /* USART1_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(USART1_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(USART1_IRQn);
-  /* USART2_IRQn interrupt configuration */
-  HAL_NVIC_SetPriority(USART2_IRQn, 0, 0);
-  HAL_NVIC_EnableIRQ(USART2_IRQn);
   /* EXTI0_1_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(EXTI0_1_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI0_1_IRQn);
   /* EXTI4_15_IRQn interrupt configuration */
   HAL_NVIC_SetPriority(EXTI4_15_IRQn, 0, 0);
   HAL_NVIC_EnableIRQ(EXTI4_15_IRQn);
+  /* USART1_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(USART1_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(USART1_IRQn);
+  /* USART2_IRQn interrupt configuration */
+  HAL_NVIC_SetPriority(USART2_IRQn, 0, 0);
+  HAL_NVIC_EnableIRQ(USART2_IRQn);
 }
 
 /* USER CODE BEGIN 4 */
