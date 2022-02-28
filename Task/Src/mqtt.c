@@ -7,6 +7,7 @@
 #include "iwdg.h"
 #include "stm_flash.h"
 
+static char version[2]={"a1"};
 uint8_t MODULE_IMEI[16] = {"0"};
 uint8_t MODULE_ICCID[21] = {"0"};
 uint8_t mqttTopic[30] = {"0"};//根据IMEI和topic构建新主题
@@ -655,7 +656,7 @@ void mqttTask() {
                 loginError++;
                 return;
             }
-            MQTTClient_pubMessage(mqttTopic, "version :a1");
+            MQTTClient_pubMessage(mqttTopic, version);
             openError = 0;
             loginError = 0;
             MCU_STATUS.MQTT_STATUS = MQTT_ONLINE;
@@ -681,14 +682,17 @@ void mqttTask() {
                     boardsDownFlag = 1;
                 }
                 if (strstr(ptr, "update") != 0) {
-                    //需要升级，写flash，进入all_restart
-                    __disable_irq();
-                    //写flash
-                    STMFLASH_Write(FLASH_InfoAddress, (uint16_t *) msgRecBuff, 50);
-                    __enable_irq();
-                    //是否加入写入校验
-                    DBG_PRINTF("write flash ota\r\n");
-                    MCU_STATUS.MQTT_STATUS = MQTT_ALL_RESTART;
+                    boardsDownFlag = 0;//升级取消转发指令
+                    if(strstr(ptr, version) == 0) {//版本号不一致
+                        //需要升级，写flash，进入all_restart
+                        __disable_irq();
+                        //写flash
+                        STMFLASH_Write(FLASH_InfoAddress, (uint16_t *) msgRecBuff, 50);//100byte
+                        __enable_irq();
+                        //是否加入写入校验
+                        DBG_PRINTF("write flash ota\r\n");
+                        MCU_STATUS.MQTT_STATUS = MQTT_ALL_RESTART;
+                    }
                 }
             }
 
