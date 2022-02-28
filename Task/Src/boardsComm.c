@@ -61,7 +61,7 @@ void boardsCommTask() {
             if (boardsRxFlag == 1) {
                 boardsRxFlag = 0;
                 if (FindStrFroMem(boardsRecBuff, boardsRxSize, "RQ_TIME") == 0) {
-                    if(boardSendFlag == 0 && boardsRxSize>0) {
+                    if(boardSendFlag == 0 && boardsRxSize>1) {
                         memset(msgSendBuff, 0, MSG_SEND_LEN);
                         memcpy(msgSendBuff, boardsRecBuff, boardsRxSize);
                         boardSendFlag = 1;
@@ -74,6 +74,8 @@ void boardsCommTask() {
                     strcat(boardsSendBuff,timeTemp);
                     HAL_UART_Transmit(&huart2, boardsSendBuff, strlen(boardsSendBuff), 1000);//回复时间
                 }
+								memset(boardsRecBuff, 0, BOARDS_REC_LEN);
+								boardsRxSize=0;
             }
 
             //下行中继
@@ -89,10 +91,7 @@ void boardsCommTask() {
             break;
 
         default:
-            if (Task_timer.boardSendTimer1s == 0) {
-                Task_timer.boardSendTimer1s = 10;
-                SendtoBoard("ALIVE99N");
-            }
+
             break;
 
     }

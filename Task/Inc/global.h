@@ -19,7 +19,7 @@
 #define BOARDS_SEND_LEN 128
 
 //打印调试封装,正式发布时DEBUG设置为取消打印
-#define  DEBUG   1
+#define  DEBUG   0
 #if DEBUG
 #define DBG_PRINTF(fmt, args...)\
 do\

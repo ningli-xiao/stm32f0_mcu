@@ -25,6 +25,7 @@
 /* USER CODE BEGIN Includes */
 #include "global.h"
 #include "myOS.h"
+#include "boardsComm.h"
 /* USER CODE END Includes */
 
 /* Private typedef -----------------------------------------------------------*/
@@ -204,7 +205,12 @@ void TIM3_IRQHandler(void)
             if(Timer_100ms>=100) {
                 Timer_100ms = 0;
             }
-
+						if(MCU_STATUS.MQTT_STATUS!=MQTT_ONLINE){
+							if (Task_timer.boardSendTimer1s == 0) {
+                Task_timer.boardSendTimer1s = 10;
+                SendtoBoard("ALIVE99N");
+							}
+            }
             __HAL_TIM_CLEAR_IT(&htim3, TIM_IT_UPDATE);
         }
     }

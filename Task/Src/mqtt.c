@@ -100,7 +100,7 @@ int GET_IMEI(void) {
         memcpy(&MODULE_IMEI[0], &msgRecBuff[2], 15);//去除0D/0A
     } else {
         DBG_PRINTF("msgRecBuff=%s\r\n", msgRecBuff);
-        memcpy(&MODULE_IMEI[0], pRet + 9, 15);//去除0D/0A
+        memcpy(&MODULE_IMEI[0], pRet + 9, 15);//去除0D/0A+AT+GSN\n
     }
     DBG_PRINTF("LTE_GET_IMEI Success:%s\r\n", &MODULE_IMEI[0]);
     return 0;
@@ -188,14 +188,14 @@ int LTE_Get_Real_Time(void) {
 int Wait_LTE_RDY(uint8_t time) {
     while (--time) {
         if (SendATCommand(NULL, "RDY", WAIT_TIME_IN) == 0) {
-            printf(" No  RDY \r\n");
+            DBG_PRINTF(" No  RDY \r\n");
         } else {
-            printf(" RDY Come\r\n");
+            DBG_PRINTF(" RDY Come\r\n");
             return 0;
         }
         HAL_Delay(1000);
     }
-    printf(" Wait_LTE_RDY Timeout:%s\r\n", msgRecBuff);
+    DBG_PRINTF(" Wait_LTE_RDY Timeout:%s\r\n", msgRecBuff);
     return -1;
 }
 
@@ -245,7 +245,7 @@ int Wait_GET_ICCID_RDY(uint8_t time) {
  */
 int MQTTParam_init() {
     mqttConnectData.MQTTVersion = 4;
-    mqttConnectData.clientID.cstring = CLIENT_ID;
+    mqttConnectData.clientID.cstring =(char*) MODULE_IMEI;
     mqttConnectData.username.cstring = CLIENT_USER;
     mqttConnectData.password.cstring = CLIENT_PASS;
     mqttConnectData.address.cstring = BROKER_SITE;
@@ -655,13 +655,14 @@ void mqttTask() {
                 loginError++;
                 return;
             }
-						MQTTClient_pubMessage(mqttTopic, "version :a2");
+            MQTTClient_pubMessage(mqttTopic, "version :a1");
             openError = 0;
             loginError = 0;
             MCU_STATUS.MQTT_STATUS = MQTT_ONLINE;
             break;
 
         case MQTT_ONLINE:
+
             if (boardSendFlag == 1) {
                 boardSendFlag = 0;
 
@@ -683,10 +684,10 @@ void mqttTask() {
                     //需要升级，写flash，进入all_restart
                     __disable_irq();
                     //写flash
-                    STMFLASH_Write(FLASH_InfoAddress, (uint16_t *)msgRecBuff, 50);
+                    STMFLASH_Write(FLASH_InfoAddress, (uint16_t *) msgRecBuff, 50);
                     __enable_irq();
                     //是否加入写入校验
-                    DBG_PRINTF("write flash ota yyds\r\n");
+                    DBG_PRINTF("write flash ota\r\n");
                     MCU_STATUS.MQTT_STATUS = MQTT_ALL_RESTART;
                 }
             }

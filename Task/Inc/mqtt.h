@@ -9,7 +9,7 @@
 #define MQTTString_initializer {NULL, {0, NULL}}
 
 #define WAIT_TIME_IN  1000 //µ¥Î»1ms
-#define WAIT_TIME_OUT 5000
+#define WAIT_TIME_OUT 3000
 #define BROKER_SITE "118.24.42.203"
 #define BROKER_PORT 1883
 #define CLIENT_ID "cc"

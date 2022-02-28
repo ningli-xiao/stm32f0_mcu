@@ -8,4 +8,5 @@
 extern uint8_t boardSendFlag;
 extern uint8_t boardSendOkFlag ;
 extern void boardsCommTask();
+extern int SendtoBoard(char *message);
 #endif //MCU_BOARDSCOMM_H

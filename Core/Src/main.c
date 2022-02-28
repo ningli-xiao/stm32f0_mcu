@@ -128,7 +128,7 @@ int main(void)
     HAL_UART_Receive_DMA(&huart1, msgRecBuff, MSG_REC_LEN);
 
 
-    DBG_PRINTF("hello world a111111\r\n");
+    DBG_PRINTF("hello world\r\n");
     HAL_Delay(200);
   /* USER CODE END 2 */
 
