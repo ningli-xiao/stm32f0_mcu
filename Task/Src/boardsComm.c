@@ -5,6 +5,7 @@
 #include "boardsComm.h"
 #include "global.h"
 #include "mqtt.h"
+
 uint8_t boardSendFlag = 0;
 uint8_t boardSendOkFlag = 0;
 
@@ -40,17 +41,17 @@ int SendtoBoard(char *message) {
  */
 void boardsCommTask() {
     uint8_t bufLen = 0;
-    char timeTemp[10]={0};
+    char timeTemp[10] = {0};
 
-    if(rstDownFlag==1){
-        rstDownFlag=0;
-        uint8_t rstValue=0;
-        uint8_t i=0;
-        for(i=0;i<8;i++){
+    if (rstDownFlag == 1) {
+        rstDownFlag = 0;
+        uint8_t rstValue = 0;
+        uint8_t i = 0;
+        for (i = 0; i < 8; i++) {
             HAL_Delay(2);
-            rstValue+=HAL_GPIO_ReadPin(RST_EC200_GPIO_Port,RST_EC200_Pin);
+            rstValue += HAL_GPIO_ReadPin(RST_EC200_GPIO_Port, RST_EC200_Pin);
         }
-        if(rstValue<2) {
+        if (rstValue < 2) {
             MCU_STATUS.MQTT_STATUS = MQTT_ALL_RESTART;
         }
     }
@@ -58,29 +59,19 @@ void boardsCommTask() {
     switch (MCU_STATUS.MQTT_STATUS) {
         case MQTT_ONLINE:
             //上行中继
-            if (boardsRxFlag == 1) {
-                boardsRxFlag = 0;
-                if (FindStrFroMem(boardsRecBuff, boardsRxSize, "RQ_TIME") == 0) {
-                    if(boardSendFlag == 0 && boardsRxSize>1) {
-                        memset(msgSendBuff, 0, MSG_SEND_LEN);
-                        memcpy(msgSendBuff, boardsRecBuff, boardsRxSize);
-                        boardSendFlag = 1;
-                    }
-                } else {
-                    net_time=LTE_Get_Real_Time();
-                    sprintf(timeTemp,"%lu",net_time);
-                    memset(boardsSendBuff, 0, BOARDS_SEND_LEN);
-                    strcpy(boardsSendBuff,"TIME:");
-                    strcat(boardsSendBuff,timeTemp);
-                    HAL_UART_Transmit(&huart2, boardsSendBuff, strlen(boardsSendBuff), 1000);//回复时间
-                }
-								memset(boardsRecBuff, 0, BOARDS_REC_LEN);
-								boardsRxSize=0;
+            if (boardsGetTimeFlag == 1) {
+                boardsGetTimeFlag = 0;
+                net_time = LTE_Get_Real_Time();
+                sprintf(timeTemp, "%lu", net_time);
+                memset(boardsSendBuff, 0, BOARDS_SEND_LEN);
+                strcpy(boardsSendBuff, "TIME:");
+                strcat(boardsSendBuff, timeTemp);
+                HAL_UART_Transmit(&huart2, boardsSendBuff, strlen(boardsSendBuff), 1000);//回复时间
             }
 
             //下行中继
             if (boardsDownFlag == 1) {
-                boardsDownFlag=0;
+                boardsDownFlag = 0;
                 HAL_UART_Transmit(&huart2, boardsSendBuff, strlen(boardsSendBuff), 1000);
             }
 

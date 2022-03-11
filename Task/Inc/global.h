@@ -77,6 +77,7 @@ extern uint32_t msgRxSize;
 extern uint8_t boardsRxFlag;       //接收完成标记
 extern uint32_t boardsRxSize;
 extern uint8_t boardsDownFlag;
+extern uint8_t boardsGetTimeFlag;
 extern uint8_t io2DownFlag;
 extern uint8_t rstDownFlag;
 extern uint32_t net_time;

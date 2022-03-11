@@ -7,7 +7,7 @@
 #include "iwdg.h"
 #include "stm_flash.h"
 
-static char version[2]={"a1"};
+static char version[5]={"a3"};
 uint8_t MODULE_IMEI[16] = {"0"};
 uint8_t MODULE_ICCID[21] = {"0"};
 uint8_t mqttTopic[30] = {"0"};//根据IMEI和topic构建新主题
@@ -330,8 +330,8 @@ int MQTTClient_connect(MQTTPacket_connectData mqtt) {
 }
 
 /*
- * 函数名：MQTTClient_connect
- * 功能：发送注册包
+ * 函数名：MQTTClient_disconnect
+ * 功能：关闭注册
  * 输入：无
  * 返回：无
  */
@@ -573,8 +573,8 @@ int MQTClient_sendLoc() {
     }
     sprintf(sMcc, "%d", Network_Location.sMcc);
     sprintf(sMnc, "%d", Network_Location.sMnc);
-    sprintf(TacTemp, "%lu", Network_Location.sLac);
-    sprintf(cellIDTemp, "%lu", Network_Location.sCellID);
+    sprintf(TacTemp, "%d", Network_Location.sLac);
+    sprintf(cellIDTemp, "%d", Network_Location.sCellID);
     sprintf(ibsicTemp, "%d", Network_Location.iBsic);
     sprintf(iRxLevTemp, "%d", Network_Location.iRxLev);
     sprintf(iRxLevSubTemp, "%d", Network_Location.iRxLevSub);
@@ -606,7 +606,7 @@ int MQTClient_sendLoc() {
     strcat(msgSendBuff, checkTemp);
     strcat(msgSendBuff, "Z");//模式
 
-    if (MQTTClient_pubMessage(mqttTopic, msgSendBuff) == 0) {
+    if (MQTTClient_pubMessage(mqttTopic, msgSendBuff) != 0) {
         return -1;
     }
     return 0;
@@ -656,10 +656,12 @@ void mqttTask() {
                 loginError++;
                 return;
             }
+						
             MQTTClient_pubMessage(mqttTopic, version);
             openError = 0;
             loginError = 0;
             MCU_STATUS.MQTT_STATUS = MQTT_ONLINE;
+
             break;
 
         case MQTT_ONLINE:
@@ -698,7 +700,6 @@ void mqttTask() {
 
             if (Task_timer.publishTimer1s == 0) {
                 Task_timer.publishTimer1s = PUBLISH_INTERVAL;
-
                 if (MQTClient_sendLoc() == 0) {
                     boardSendOkFlag = 1;
                 }

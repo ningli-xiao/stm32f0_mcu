@@ -21,6 +21,7 @@ uint8_t boardsSendBuff[BOARDS_SEND_LEN] = {0}; //发送缓存区
 uint8_t boardsRecBuff[BOARDS_REC_LEN] = {0}; //接收缓存区
 uint8_t boardsRxFlag=0;       //接收完成标记
 uint8_t boardsDownFlag=0;       //下发标志
+uint8_t boardsGetTimeFlag=0;     
 uint32_t boardsRxSize=0;
 
 uint8_t io2DownFlag=0;
