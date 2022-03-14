@@ -7,10 +7,11 @@
 #include "iwdg.h"
 #include "stm_flash.h"
 
-static char version[5]={"a3"};
+static char version[5]={"a5"};
 uint8_t MODULE_IMEI[16] = {"0"};
 uint8_t MODULE_ICCID[21] = {"0"};
-uint8_t mqttTopic[30] = {"0"};//根据IMEI和topic构建新主题
+uint8_t mqttPubTopic[30] = {"0"};//根据IMEI和topic构建新主题
+uint8_t mqttSubTopic[30] = {"0"};//根据IMEI和topic构建订阅主题
 MQTTPacket_connectData mqttConnectData = MQTTPacket_connectData_initializer;
 Network_Location_t Network_Location;
 
@@ -278,9 +279,15 @@ int MQTTClient_init() {
     Wait_GET_ICCID_RDY(3);
     Wait_Signal_RDY(3);
 
-    strcpy(mqttTopic, PUBLISH_TOPIC);
-    strcat(mqttTopic, &MODULE_IMEI[7]);//拼接后8位数据:8-15
-    DBG_PRINTF("mqttTopic:%s\r\n", mqttTopic);
+    strcpy(mqttPubTopic, PUBLISH_TOPIC);
+    strcat(mqttPubTopic, &MODULE_IMEI[7]);//拼接后8位数据:8-15
+
+    strcpy(mqttSubTopic, SUBSCRIBE_TOPIC);
+    strcat(mqttSubTopic, &MODULE_IMEI[7]);//拼接后8位数据:8-15
+
+    DBG_PRINTF("mqttPubTopic:%s\r\n", mqttPubTopic);
+    DBG_PRINTF("mqttSubTopic:%s\r\n", mqttSubTopic);
+
     return 0;
 }
 
@@ -606,7 +613,7 @@ int MQTClient_sendLoc() {
     strcat(msgSendBuff, checkTemp);
     strcat(msgSendBuff, "Z");//模式
 
-    if (MQTTClient_pubMessage(mqttTopic, msgSendBuff) != 0) {
+    if (MQTTClient_pubMessage(mqttPubTopic, msgSendBuff) != 0) {
         return -1;
     }
     return 0;
@@ -652,12 +659,12 @@ void mqttTask() {
                 return;
             }
 
-            if (MQTTClient_subMessage(SUBSCRIBE_TOPIC) != 0) {
+            if (MQTTClient_subMessage(mqttSubTopic) != 0) {
                 loginError++;
                 return;
             }
 						
-            MQTTClient_pubMessage(mqttTopic, version);
+            MQTTClient_pubMessage(mqttPubTopic, version);
             openError = 0;
             loginError = 0;
             MCU_STATUS.MQTT_STATUS = MQTT_ONLINE;
@@ -669,7 +676,7 @@ void mqttTask() {
             if (boardSendFlag == 1) {
                 boardSendFlag = 0;
 
-                if (MQTTClient_pubMessage(mqttTopic, msgSendBuff) == 0) {
+                if (MQTTClient_pubMessage(mqttPubTopic, msgSendBuff) == 0) {
                     boardSendOkFlag = 1;
                 }
             }
@@ -714,7 +721,7 @@ void mqttTask() {
                     ioValue += HAL_GPIO_ReadPin(IO2_GPIO_Port, IO2_Pin);
                 }
                 if (ioValue < 2) {
-                    MQTTClient_pubMessage(mqttTopic, "ALERTD:1N9Z");
+                    MQTTClient_pubMessage(mqttPubTopic, "ALERTD:1N9Z");
                 }
             }
             break;

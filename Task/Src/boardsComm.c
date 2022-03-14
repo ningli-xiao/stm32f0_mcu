@@ -60,12 +60,20 @@ void boardsCommTask() {
         case MQTT_ONLINE:
             //上行中继
             if (boardsGetTimeFlag == 1) {
+                char checkTemp[3]={0};
                 boardsGetTimeFlag = 0;
+
                 net_time = LTE_Get_Real_Time();
                 sprintf(timeTemp, "%lu", net_time);
                 memset(boardsSendBuff, 0, BOARDS_SEND_LEN);
                 strcpy(boardsSendBuff, "TIME:");
                 strcat(boardsSendBuff, timeTemp);
+                strcat(boardsSendBuff, "N");
+
+                sprintf(checkTemp, "%d",  CheckXorAndMod(boardsSendBuff, strlen(boardsSendBuff) - 1));
+                strcat(boardsSendBuff, checkTemp);
+                strcat(boardsSendBuff, "Z");//模式
+
                 HAL_UART_Transmit(&huart2, boardsSendBuff, strlen(boardsSendBuff), 1000);//回复时间
             }
 

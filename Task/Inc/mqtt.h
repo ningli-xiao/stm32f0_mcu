@@ -15,8 +15,8 @@
 #define CLIENT_ID "cc"
 #define CLIENT_USER "123"
 #define CLIENT_PASS "1"
-#define SUBSCRIBE_TOPIC "testsub"
-#define PUBLISH_TOPIC "testpub"
+#define SUBSCRIBE_TOPIC "control/box4/"
+#define PUBLISH_TOPIC "status/box4/"
 #define PUBLISH_INTERVAL 400//400s
 #define PUBLISH_PAYLOEAD "hello I'm from gprs module"
 
