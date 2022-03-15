@@ -64,6 +64,7 @@ void boardsCommTask() {
                 boardsGetTimeFlag = 0;
 
                 net_time = LTE_Get_Real_Time();
+                net_time+=28800;//转换为北京时间,加8h
                 sprintf(timeTemp, "%lu", net_time);
                 memset(boardsSendBuff, 0, BOARDS_SEND_LEN);
                 strcpy(boardsSendBuff, "TIME:");

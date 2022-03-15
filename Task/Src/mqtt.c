@@ -7,7 +7,7 @@
 #include "iwdg.h"
 #include "stm_flash.h"
 
-static char version[5]={"a5"};
+static char version[5]={"a6"};
 uint8_t MODULE_IMEI[16] = {"0"};
 uint8_t MODULE_ICCID[21] = {"0"};
 uint8_t mqttPubTopic[30] = {"0"};//根据IMEI和topic构建新主题
